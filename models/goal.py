@@ -6,8 +6,10 @@ class GoalNode:
         self.title = title
         self.description = description
         self.task = (0, 0, 0)
-        self.tag = tag
+        self.tag=tag
+        self.isOpen=True
         self.width = 1
+
 
     def add_child(self, child_node):
         """자식 노드 추가 및 부모 관계 설정."""

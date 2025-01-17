@@ -7,7 +7,7 @@ load_dotenv()
 connection_string = os.getenv("MONGODB_URI")
 client = MongoClient(connection_string)
 db = client["W4_Calendar"]
-collection = db["Calendar_Goals"]
+collection = db["Test"]
 
 goal_schema = {
     "title": "목표 제목",
@@ -16,6 +16,7 @@ goal_schema = {
     "parent": None,
     "task": [0, 0, 0],
     "tag": "목표 태그",
+    "height": 0,
     "due_date": "2025-01-30T10:00:00Z",  # Leaf Node만 해당
     
 }
