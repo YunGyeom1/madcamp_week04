@@ -3,31 +3,7 @@ from PyQt5.QtCore import Qt, QPointF
 from PyQt5.QtGui import QBrush, QPen, QPainter
 import sys
 from models.goal import GoalNode
-
-def get_nodes(root):
-    res = {root.height: [root]}
-    for child in root.children:
-        child_nodes = get_nodes(child)
-        for key, nodes in child_nodes.items():
-            if key not in res:
-                res[key] = []
-            res[key].extend(nodes)
-    return res
-
-def vis_node(node):
-    ellipse = QGraphicsEllipseItem(0, 0, 50, 50)
-    ellipse.setBrush(QBrush(Qt.yellow))
-    ellipse.setPen(QPen(Qt.black))
-
-    node_label = f"{node.title}"
-    text = QGraphicsTextItem(node_label)
-    text.setDefaultTextColor(Qt.black)
-    text.setPos(10, 10)  # 텍스트를 약간 안쪽으로 이동
-
-    group = QGraphicsItemGroup()
-    group.addToGroup(ellipse)
-    group.addToGroup(text)
-    return group
+from gui.interactions import InteractiveNode
 
 def add_edge(scene, parent_pos, child_pos):
     parent = QPointF(parent_pos.x() + 50, parent_pos.y() + 25)
@@ -58,21 +34,21 @@ def add_edge(scene, parent_pos, child_pos):
     scene.addItem(line2)
     return
 
-def place_node(scene, node, x, y):
-    vnode = vis_node(node)
-    vnode.setPos(500-100*node.height, y)
+def place_node(scene, node, x, y, update_callback):
+    vnode = InteractiveNode(node, update_callback)  # 업데이트 콜백 전달
+    vnode.setPos(500 - 100 * node.height, y)
     scene.addItem(vnode)
+
     dy = 0
     for ch in node.children:
-        child_x = 500-100*ch.height
-        child_y = y+dy
-        place_node(scene, ch, 500-100*ch.height, child_y)
+        child_x = 500 - 100 * ch.height
+        child_y = y + dy
+        place_node(scene, ch, child_x, child_y, update_callback)  # 재귀적으로 호출
         add_edge(scene, vnode.pos(), QPointF(child_x, child_y))
         dy += ch.width * 100
-    
+
 def visualize_tree(root):
     # 루트 노드부터 배치 시작
-    """PyQt로 트리 시각화."""
     app = QApplication(sys.argv)
 
     # 그래픽 장면 및 뷰 설정
@@ -80,7 +56,11 @@ def visualize_tree(root):
     view = QGraphicsView(scene)
     view.setRenderHint(QPainter.Antialiasing)
 
-    place_node(scene, root, 100, 100)
+    def update_tree():
+        scene.clear()
+        place_node(scene, root, 100, 100, update_tree)
+    
+    update_tree()
 
     # 뷰 설정
     view.setScene(scene)
@@ -89,7 +69,7 @@ def visualize_tree(root):
     view.show()
 
     sys.exit(app.exec_())
-
+ 
 # GoalNode 생성 및 테스트
 def create_sample_tree():
     root = GoalNode("Root")
@@ -113,3 +93,9 @@ def create_sample_tree():
 if __name__ == "__main__":
     root_node = create_sample_tree()
     visualize_tree(root_node)
+
+
+
+
+        self.scene.clear()
+        self.place_node(self.root, 100, 100)
