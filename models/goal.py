@@ -6,6 +6,8 @@ class GoalNode:
         self.parent = parent
         self.task = (0, 0, 0)
         self.tag=tag
+        self.height = 0
+        self.isOpen=True
 
     def add_child(self, child_node):
         self.children.append(child_node)
