@@ -1,9 +1,10 @@
 class GoalNode:
-    def __init__(self, title: str, description: str = "", parent=None, tag: str = ""):
+    def __init__(self, title: str, description: str = "", parent=None, tag: str = "", location: str = ""):
         self.children = []
         self.height = 0
         self.parent = parent
         self.title = title
+        self.location = location
         self.description = description
         self.task = (0, 0, 0)
         self.tag=tag

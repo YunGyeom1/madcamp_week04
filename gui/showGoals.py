@@ -2,6 +2,8 @@ from PyQt5.QtWidgets import QApplication, QGraphicsView, QGraphicsScene, QGraphi
 from PyQt5.QtCore import Qt, QPointF
 from PyQt5.QtGui import QBrush, QPen, QPainter
 import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'models')))
 from models.goal import GoalNode
 from gui.interactions import InteractiveNode
 
@@ -93,9 +95,5 @@ def create_sample_tree():
 if __name__ == "__main__":
     root_node = create_sample_tree()
     visualize_tree(root_node)
-
-
-
-
-        self.scene.clear()
-        self.place_node(self.root, 100, 100)
+    self.scene.clear()
+    self.place_node(self.root, 100, 100)
