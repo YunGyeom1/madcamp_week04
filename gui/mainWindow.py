@@ -1,13 +1,18 @@
-#mainWindow.py
-from PyQt5.QtWidgets import QSizePolicy, QApplication,QGraphicsScene,QGraphicsProxyWidget, \
-                            QGraphicsWidget,QGraphicsView, QMainWindow, QVBoxLayout, QPushButton, \
-                            QWidget, QHBoxLayout
-from models.goal import MakeNode  # MakeNode 클래스가 models.goal 모듈에 있다고 가정
-from gui.interactions import InteractiveNode  # InteractiveNode 클래스가 gui.interactions 모듈에 있다고 가정
-from gui.showTree import TreeWidget
-from PyQt5.QtCore import Qt, QRectF
-from gui.sideDate import DateSidebar
-from PyQt5.QtGui import QBrush, QPen, QPainter
+# mainWindow.py
+from PyQt5.QtWidgets import QApplication, QGraphicsScene, QGraphicsView, QMainWindow, QVBoxLayout, QWidget
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPainter
+from bson.objectid import ObjectId  # MongoDB ObjectId를 사용하기 위한 임포트
+from dotenv import load_dotenv
+import os
+
+# .env 파일 로드
+load_dotenv()
+# 커스텀 모듈 임포트
+from models.goal import MakeNode, collection  # MakeNode 함수와 MongoDB 컬렉션
+from gui.interactions import InteractiveNode  # InteractiveNode 클래스
+from gui.showTree import TreeWidget  # TreeWidget 클래스
+from gui.sideDate import DateSidebar  # DateSidebar 클래스
 
 class MainWindow(QMainWindow):
     def __init__(self, root):
@@ -56,25 +61,54 @@ class MainWindow(QMainWindow):
         # TreeWidget과 Sidebar 위치 및 크기 조정
         self.tree_widget.setGeometry(0, 0, width - sidebar_width, height)  # TreeWidget은 나머지 공간 사용
         self.date_sidebar.setGeometry(width - sidebar_width, 0, sidebar_width, height)  # Sidebar는 고정된 크기와 위치
-        
+
+
 def create_sample_tree():
-    root = MakeNode("Root")
-    child1 = MakeNode("C1")
-    child2 = MakeNode("C2")
-    child3 = MakeNode("C3")
-    child4 = MakeNode("C4")
-    root.add_child(child1)
-    root.add_child(child2)
-    child1.add_child(child3)
-    child1.add_child(child4)
-    return root
+    
+    def print_node_details(node_id):
+        """디버깅용: 노드의 height와 width를 출력."""
+        node = collection.find_one({"_id": ObjectId(node_id)})
+        if node:
+            print(f"Node: {node['title']}, ID: {node_id}")
+            print(f"  Height: {node.get('height', 'N/A')}, Width: {node.get('width', 'N/A')}")
+        else:
+            print(f"[ERROR] Node with ID {node_id} not found.")
+    dummy_root_id = os.getenv("DUMMY_ROOT_ID")
+    print(dummy_root_id)
+    if not dummy_root_id: return
+    # 루트 노드 생성
+    root_id = MakeNode("Root", ObjectId(dummy_root_id))
+    print("[INFO] Created Root Node:")
+    print_node_details(root_id)
+
+    # 자식 노드 생성
+    child1_id = MakeNode("C1", root_id)
+    print("\n[INFO] Created Child Node C1:")
+    print_node_details(child1_id)
+
+    child2_id = MakeNode("C2", root_id)
+    print("\n[INFO] Created Child Node C2:")
+    print_node_details(child2_id)
+
+    child3_id = MakeNode("C3", child1_id)
+    print("\n[INFO] Created Child Node C3:")
+    print_node_details(child3_id)
+
+    child4_id = MakeNode("C4", child1_id)
+
+    return root_id  # 루트 노드 ID 반환
 
 # 실행 코드
 if __name__ == "__main__":
     import sys
 
     app = QApplication(sys.argv)
-    root_node = create_sample_tree()
-    main_window = MainWindow(root_node)
+
+    # 샘플 트리 생성
+    root_node_id = create_sample_tree()  # root_node_id는 ObjectId
+
+    # TreeWidget에 루트 노드 ID를 전달
+    main_window = MainWindow(root_node_id)
     main_window.show()
+
     sys.exit(app.exec_())
