@@ -24,6 +24,8 @@ def MakeNode(title: str, description: str = "", parent = None, tag: str = "", lo
         "isOpen": True,
         "location": location,
         "due_date": "2025-01-30T10:00:00Z",  # Leaf Node만 해당
+        "start_time": None,
+        "end_time": None
     }
     collection.insert_one(goal_schema)
 
