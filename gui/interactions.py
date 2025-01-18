@@ -8,6 +8,7 @@ from PyQt5.QtGui import QColor, QBrush, QPen, QFont, QDrag
 from PyQt5.QtCore import Qt, QRectF, QPointF, QMimeData
 from models.goal import MakeNode
 from gui.popupMenu import NodePopupMenu, DateRangeDialog
+
 class InteractiveNode(QGraphicsItemGroup):
     def __init__(self, node, update_callback, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -46,6 +47,19 @@ class InteractiveNode(QGraphicsItemGroup):
         self.plus_text.setFont(QFont("Arial", 14, QFont.Bold))
         self.plus_text.setPos(180, 30)
         self.plus_text.setParentItem(self.plus_button)
+        
+        # "..." 버튼
+        self.menu_button = QGraphicsEllipseItem(140, 25, 30, 30)
+        self.menu_button.setBrush(QBrush(Qt.lightGray))
+        self.menu_button.setPen(QPen(Qt.black))
+        self.addToGroup(self.menu_button)
+
+        # "..." 텍스트
+        self.menu_text = QGraphicsSimpleTextItem("...")
+        self.menu_text.setFont(QFont("Arial", 14, QFont.Bold))
+        self.menu_text.setPos(150, 30)
+        self.menu_text.setParentItem(self.menu_button)
+
 
     def mousePressEvent(self, event):
         try:
@@ -58,14 +72,23 @@ class InteractiveNode(QGraphicsItemGroup):
 
                 if self.update_callback:
                     self.update_callback()
+            elif self.menu_button.contains(self.mapFromScene(event.scenePos())):
+                # ... 버튼 클릭: NodePopupMenu 표시
+                self.show_popup(event.scenePos())
             else:
                 # 기본 드래그 시작
-                drag = QDrag(event.widget())
+                view = self.scene().views()[0]  # 첫 번째 뷰 가져오기
+                print("Views: ", self.scene().views())
+                for idx, view in enumerate(self.scene().views()):
+                    print(f"View {idx}: {view}, Type: {type(view)}")
+                drag = QDrag(view)
                 mime_data = QMimeData()
-                mime_data.setData("application/x-node-id", str(self.node["_id"]).encode("utf-8"))  # 노드 ID 전달
-                mime_data.setText(self.node["title"])  # 노드 제목 전달
+                mime_data.setData("application/x-node-id", str(self.node["_id"]).encode("utf-8"))
+                mime_data.setText(self.node["title"])
                 drag.setMimeData(mime_data)
+                print(mime_data)
                 drag.exec_(Qt.MoveAction)
+                
         except Exception as e:
             print(f"Error in mousePressEvent: {e}")
 
@@ -73,17 +96,10 @@ class InteractiveNode(QGraphicsItemGroup):
         if hasattr(self, "isDragging") and self.isDragging:
             new_pos = self.mapToScene(event.pos()) - self.mapToScene(event.buttonDownPos(Qt.LeftButton))
             self.setPos(self.original_pos + new_pos)
-
-    def mouseReleaseEvent(self, event):
-        if hasattr(self, "isDragging") and self.isDragging:
-            self.isDragging = False
-
-        if self.update_callback:
-            self.update_callback()
-
-    def mouseReleaseEvent(self, event):
-        if hasattr(self, 'isDragging') and self.isDragging:  # 드래그 종료
-            self.isDragging = False
-
-        if self.update_callback:  # 업데이트 콜백 호출
-            self.update_callback()
+    def show_popup(self, position):
+        """NodePopupMenu를 표시하는 함수"""
+        try:
+            popup = NodePopupMenu()
+            popup.exec_(self.scene().views()[0].mapToGlobal(position.toPoint()))
+        except Exception as e:
+            print(f"Error in show_popup: {e}")
