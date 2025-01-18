@@ -6,10 +6,20 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import QEvent  # 이벤트 필터에서 사용
 from PyQt5.QtWidgets import QAbstractScrollArea  # 테이블 크기 조정 정책에 사용
+from models.goal import add_leaf  # add_leaf 함수 import
+from pymongo import MongoClient
+from bson.objectid import ObjectId
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 
+connection_string = os.getenv("MONGODB_URI")
+client = MongoClient(connection_string)
+db = client["W4_Calendar"]
+collection = db["Test"]
 class DateSidebar(QTableWidget):
-    def __init__(self, parent=None):
+    def __init__(self, node, parent=None):
         super().__init__(0, 2, parent)  # 2열 테이블
         self.setHorizontalHeaderLabels(["Content", "Date"])  # 헤더 설정
         self.setColumnWidth(0, 300)  # 첫 번째 열 너비
@@ -86,29 +96,51 @@ class DateSidebar(QTableWidget):
         else:
             event.ignore()
 
+
     def dropEvent(self, event):
-        #print("DateSidebar: dropEvent Triggered")
         if event.mimeData().hasFormat("application/x-node-id"):
             node_id = event.mimeData().data("application/x-node-id").data().decode("utf-8")
             node_title = event.mimeData().text()
-            #print(f"DateSidebar: Dropped Node ID: {node_id}, Title: {node_title}")
             event.acceptProposedAction()
             
             # 드롭 위치 파악
-            drop_pos = event.pos()
-            target_item = self.itemAt(drop_pos)
-            if target_item is not None:
-                row = target_item.row()
-                # 원하는 열을 선택 (예: 첫 번째 열 Content)
-                column = 0  
-                # 새로운 내용을 설정
-                updated_content = f"Dropped: {node_title}"
-                new_item = QTableWidgetItem(updated_content)
-                new_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-                self.setItem(row, column, new_item)
-                print(f"Cell at row {row}, column {column} updated with '{updated_content}'.")
+            data = collection.find_one({"_id": node_id})
+        if not data:
+            print(f"No data found for node ID: {node_id}")
+            return
+
+        # MongoDB에서 시작 시간과 끝 시간 가져오기
+        start_time = data.get("start_time", "09:00")  # 기본값 09:00
+        end_time = data.get("end_time", "10:00")  # 기본값 10:00
+        
+        # 드롭 위치 파악
+        drop_pos = event.pos()
+        target_item = self.itemAt(drop_pos)
+        if target_item is not None:
+            row = target_item.row()
+            
+            # 새로운 노드 생성
+            new_leaf_id = add_leaf(node_id)  # MongoDB에 새 leaf 노드 추가
+            print(f"New leaf created with ID: {new_leaf_id}")
+
+            # 사용자 정의 텍스트 추가
+            additional_text = f"\n{start_time}~{end_time}: {node_title}"
+
+            # 기존 텍스트 가져오기
+            current_item = self.item(row, 0)  # 첫 번째 열의 항목
+            if current_item is not None:
+                current_text = current_item.text()
             else:
-                print("드롭 위치에 해당하는 셀이 없습니다.")
+                current_text = ""
+
+            # 텍스트 업데이트
+            updated_content = current_text + additional_text
+            new_item = QTableWidgetItem(updated_content)
+            new_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+            self.setItem(row, 0, new_item)
+            print(f"Updated cell at row {row} with text: {updated_content}")
+        # else:
+        #     print("드롭 위치에 해당하는 셀이 없습니다.")
         else:
             print("Invalid MIME data in dropEvent")
             event.ignore()
