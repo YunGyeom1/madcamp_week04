@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QApplication, QGraphicsView, QGraphicsScene, QGraphi
 from PyQt5.QtCore import Qt, QPointF
 from PyQt5.QtGui import QBrush, QPen, QPainter
 import sys
-from models.goal import GoalNode
+from models.goal import MakeNode
 from gui.interactions import InteractiveNode
 
 

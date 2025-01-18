@@ -2,7 +2,7 @@
 from PyQt5.QtWidgets import QSizePolicy, QApplication,QGraphicsScene,QGraphicsProxyWidget, \
                             QGraphicsWidget,QGraphicsView, QMainWindow, QVBoxLayout, QPushButton, \
                             QWidget, QHBoxLayout
-from models.goal import GoalNode  # GoalNode 클래스가 models.goal 모듈에 있다고 가정
+from models.goal import MakeNode  # MakeNode 클래스가 models.goal 모듈에 있다고 가정
 from gui.interactions import InteractiveNode  # InteractiveNode 클래스가 gui.interactions 모듈에 있다고 가정
 from gui.showTree import TreeWidget
 from PyQt5.QtCore import Qt, QRectF
@@ -58,11 +58,11 @@ class MainWindow(QMainWindow):
         self.date_sidebar.setGeometry(width - sidebar_width, 0, sidebar_width, height)  # Sidebar는 고정된 크기와 위치
         
 def create_sample_tree():
-    root = GoalNode("Root")
-    child1 = GoalNode("C1")
-    child2 = GoalNode("C2")
-    child3 = GoalNode("C3")
-    child4 = GoalNode("C4")
+    root = MakeNode("Root")
+    child1 = MakeNode("C1")
+    child2 = MakeNode("C2")
+    child3 = MakeNode("C3")
+    child4 = MakeNode("C4")
     root.add_child(child1)
     root.add_child(child2)
     child1.add_child(child3)

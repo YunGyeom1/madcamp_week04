@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QColor, QBrush, QPen, QFont
 from PyQt5.QtCore import Qt, QRectF, QPointF
-from models.goal import GoalNode
+from models.goal import MakeNode
 from gui.popupMenu import NodePopupMenu, DateRangeDialog
 
 class InteractiveNode(QGraphicsItemGroup):
@@ -70,11 +70,12 @@ class InteractiveNode(QGraphicsItemGroup):
         self.popupMenu.addAction("태그 추가", lambda: self.popupMenu.on_tag_clicked(self.node))
         self.popupMenu.addAction("반복 설정", self.popupMenu.on_repeat_clicked)
         self.popupMenu.addAction("숨기기/보이기 토글", lambda: self.popupMenu.on_toggle_visibility_clicked(self.node))
+        
     def mousePressEvent(self, event):
         try:
             print("mousePressEvent called")
             if self.plus_button.contains(self.mapFromScene(event.scenePos())):  # + 버튼 클릭 시 새 자식 노드 추가
-                new_child = GoalNode(f"C{len(self.node.children) + 10}")
+                new_child = MakeNode(f"C{len(self.node.children) + 10}")
                 self.node.add_child(new_child)
                 print(f"Added child node: {new_child.title}")
 
@@ -84,61 +85,31 @@ class InteractiveNode(QGraphicsItemGroup):
             elif self.menu_button.contains(self.mapFromScene(event.scenePos())):  # ... 버튼 클릭 시 팝업 메뉴 실행
                 self.popupMenu.exec_(event.screenPos())
             else:
-                self.isDragging = True  # 드래그 시작
-                self.original_pos = self.pos()  # 드래그 시작 위치 저장
-
-            # 상위 클래스 호출 필요 여부 판단
-            if not (self.plus_button.contains(self.mapFromScene(event.scenePos())) or 
-                    self.menu_button.contains(self.mapFromScene(event.scenePos()))):
-                super().mousePressEvent(event)
+                # 새 노드 복사본 생성
+                self.copied_node = InteractiveNode(self.node, self.update_callback)
+                self.copied_node.setPos(self.pos())  # 원본과 같은 위치에 생성
+                if self.scene():
+                    self.scene().addItem(self.copied_node)
+                print(f"Copied node created: {self.node.title}")
+                
+                # 드래그를 복사된 노드로 시작
+                self.copied_node.isDragging = True
+                self.copied_node.original_pos = self.copied_node.pos()
 
         except RuntimeError as e:
             print(f"Error: {e}")
 
     def mouseMoveEvent(self, event):
-        print("mouseMoveEvent called")
-        if self.isDragging:  # 드래그 중인 경우
+        if hasattr(self, 'isDragging') and self.isDragging:  # 드래그 중인 경우
             # 새로운 위치 계산
             new_pos = self.mapToScene(event.pos()) - self.mapToScene(event.buttonDownPos(Qt.LeftButton))
-            print(f"Dragging to new position: {self.original_pos + new_pos}")
-            self.setPos(self.original_pos + new_pos)  # 새 위치로 이동
-
-        # super 호출은 생략하거나 필요 시 추가
-        QGraphicsItemGroup.mouseMoveEvent(self, event)
+            self.setPos(self.original_pos + new_pos)  # 노드 위치 업데이트
+            print(f"Dragging to new position: {self.pos()}")
 
     def mouseReleaseEvent(self, event):
-        print("mouseReleaseEvent called")
-        if self.isDragging:  # 드래그 종료
+        if hasattr(self, 'isDragging') and self.isDragging:  # 드래그 종료
             self.isDragging = False
-            print("Dragging ended")
+            print(f"Dragging ended at position: {self.pos()}")
 
-        # super 호출은 생략하거나 필요 시 추가
-        QGraphicsItemGroup.mouseReleaseEvent(self, event)
-        print("mouseReleaseEvent called")
-        if self.isDragging:  # 드래그 종료
-            self.isDragging = False
-            if event.button() == Qt.RightButton:  # 오른쪽 버튼으로 드래그 종료 시 노드 복제
-                new_node = InteractiveNode(self.node, self.update_callback)
-                new_node.setPos(self.pos() + QPointF(30, 30))  # 약간 다른 위치에 복사
-                if self.scene():
-                    self.scene().addItem(new_node)
-                print(f"Copied node: {self.node.title}")
-
-        if self.scene():
-            super().mouseReleaseEvent(event)
-
-        if self.update_callback:
+        if self.update_callback:  # 업데이트 콜백 호출
             self.update_callback()
-            if self.isDragging:  # 드래그 종료
-                self.isDragging = False
-                if event.button() == Qt.RightButton:  # 오른쪽 버튼으로 드래그 종료 시 노드 복제
-                    new_node = InteractiveNode(self.node, self.update_callback)
-                    new_node.setPos(self.pos() + QPointF(30, 30))  # 약간 다른 위치에 복사
-                    if self.scene():
-                        self.scene().addItem(new_node)
-                    print(f"Copied node: {self.node.title}")
-            if self.scene():
-                super().mouseReleaseEvent(event)
-            if self.update_callback:
-                self.update_callback()
-            super().mouseReleaseEvent(event)

@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QApplication, QGraphicsScene, QGraphicsView, QMainWi
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPainter
 from gui.interactions import InteractiveNode
-from models.goal import GoalNode
+from models.goal import MakeNode
 
 
 class TestWindow(QMainWindow):
@@ -17,8 +17,8 @@ class TestWindow(QMainWindow):
         self.view.setRenderHint(QPainter.Antialiasing)
         self.setCentralWidget(self.view)
 
-        # GoalNode 객체 생성
-        self.goal_node = GoalNode("Test Node")
+        # MakeNode 객체 생성
+        self.goal_node = MakeNode("Test Node")
         self.goal_node.description = "This is a test node."
 
         # InteractiveNode 객체 추가

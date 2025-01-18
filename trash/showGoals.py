@@ -5,7 +5,7 @@ from PyQt5.QtGui import QBrush, QPen, QPainter
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'models')))
-from models.goal import GoalNode
+from models.goal import MakeNode
 from gui.interactions import InteractiveNode
 
 def add_edge(scene, parent_pos, child_pos):
@@ -67,22 +67,22 @@ def visualize_tree(root):
 
     # 뷰 설정
     view.setScene(scene)
-    view.setWindowTitle("GoalNode Tree Visualization")
+    view.setWindowTitle("MakeNode Tree Visualization")
     view.setGeometry(100, 100, 800, 600)
     view.show()
 
     sys.exit(app.exec_())
  
-# GoalNode 생성 및 테스트
+# MakeNode 생성 및 테스트
 def create_sample_tree():
-    root = GoalNode("Root")
-    child1 = GoalNode("C1")
-    child2 = GoalNode("C2")
-    child3 = GoalNode("C3")
-    child4 = GoalNode("C4")
-    child5 = GoalNode("C5")
-    child6 = GoalNode("C6")
-    child7 = GoalNode("C7")
+    root = MakeNode("Root")
+    child1 = MakeNode("C1")
+    child2 = MakeNode("C2")
+    child3 = MakeNode("C3")
+    child4 = MakeNode("C4")
+    child5 = MakeNode("C5")
+    child6 = MakeNode("C6")
+    child7 = MakeNode("C7")
 
     root.add_child(child1)
     root.add_child(child2)
