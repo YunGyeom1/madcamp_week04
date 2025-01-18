@@ -56,7 +56,10 @@ def create_sample_tree():
     dummy_root_id = os.getenv("DUMMY_ROOT_ID")
     print(dummy_root_id)
     if not dummy_root_id: return
+
     root_id = MakeNode("Root", ObjectId(dummy_root_id))
+    # 루트 노드 생성
+    root_id = MakeNode(title="Root", parent=ObjectId(dummy_root_id))
     print_node_details(root_id)
     child1_id = MakeNode("C1", root_id)
     child2_id = MakeNode("C2", root_id)

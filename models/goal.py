@@ -12,6 +12,11 @@ collection = db["Test"]
 
 
 def MakeNode(title: str, parent: ObjectId, description: str = "", tag: str = "", location: str = ""):
+    """부모 노드에 시간 일정이 있으면 자식 노드를 만들 수 없도록"""
+    parent_node = collection.find_one({"_id": parent})
+    if parent_node["start_time"] is not None and parent_node["end_time"] is not None:
+        print("부모 노드가 leaf 노드입니다.")
+        return
     goal_schema = {
         "title": title,
         "description": description,
@@ -35,7 +40,7 @@ def MakeNode(title: str, parent: ObjectId, description: str = "", tag: str = "",
 
 
 def add_child(parent_id, child_id):
-    """자식 노드 추가 및 부모 관계 설정."""
+    """자식 노드 추가 및 부모 관계 설정. MakeNode로 합쳐서 이젠 필요없음"""
     collection.update_one({"_id": parent_id}, {"$push": {"children": child_id}})
     result = collection.update_one({"_id": child_id}, {"$set": {"parent": parent_id}})
     print(f"Update result for parent: {result.modified_count}")
@@ -48,6 +53,8 @@ def add_leaf(node):
     leaf = collection.insert_one(data)
     collection.update_one({"_id": node}, {"$push": {"children": leaf.inserted_id}})
     collection.update_one({"_id": leaf.inserted_id}, {"$set": {"parent": node}})
+    update_height(node)
+    return leaf.inserted_id
 
 
 def update_height(node, cache=None):

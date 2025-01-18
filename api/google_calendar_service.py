@@ -4,6 +4,15 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from google.auth.transport.requests import Request
+from pymongo import MongoClient
+from bson.objectid import ObjectId
+from dotenv import load_dotenv
+load_dotenv()
+
+connection_string = os.getenv("MONGODB_URI")
+client = MongoClient(connection_string)
+db = client["W4_Calendar"]
+collection = db["Test"]
 
 # 사용자의 인증 정보를 저장할 파일
 TOKEN_FILE = 'token.pickle'
@@ -32,16 +41,19 @@ def authenticate_google_account():
     
     return creds
 
-def create_event():
+def create_event(node_id):
+    """node_id를 받아서 DB에서 가져와서 구글 캘린더에 등록"""
     try:
         creds = authenticate_google_account()
         service = build('calendar', 'v3', credentials=creds)
 
+        node = collection.find_one({"_id": node_id})
+
         # 이벤트 세부 정보 설정
         event = {
-            'summary': '목표 달성 미팅',
-            'location': '온라인',
-            'description': '이 목표를 위한 회의',
+            'summary': node["title"],
+            'location': node["location"],
+            'description': node["description"],
             'start': {
                 'dateTime': '2025-01-30T10:00:00',
                 'timeZone': 'Asia/Seoul',
