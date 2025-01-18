@@ -42,7 +42,7 @@ class TreeWidget(QWidget):
         children = node.get("children", [])
 
         dy = 0  # 기본 세로 간격
-
+        if node["start_time"] or node["end_time"]: return
         for i, child_id in enumerate(children):
             child_node = self.fetch_node_data(child_id)
             y += dy  # y 위치는 부모 아래로 간격 유지

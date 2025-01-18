@@ -11,10 +11,18 @@ collection = db["Test"]
 
 
 
-def MakeNode(title: str, parent: ObjectId, description: str = "", tag: str = "", location: str = ""):
+def MakeNode(
+    title: str = "Untitled Node",  # 기본 제목
+    parent: ObjectId = None,       # 부모 ID (없으면 루트 노드)
+    description: str = "",         # 기본 설명
+    tag: str = "",                 # 기본 태그
+    location: str = "",             # 기본 위치
+    start_time = None,
+    end_time = None
+):
     """부모 노드에 시간 일정이 있으면 자식 노드를 만들 수 없도록"""
     parent_node = collection.find_one({"_id": parent})
-    if parent_node["start_time"] is not None and parent_node["end_time"] is not None:
+    if parent and (parent_node["start_time"] or parent_node["end_time"]):
         print("부모 노드가 leaf 노드입니다.")
         return
     goal_schema = {
@@ -29,8 +37,8 @@ def MakeNode(title: str, parent: ObjectId, description: str = "", tag: str = "",
         "isOpen": True,
         "location": location,
         "due_date": "2025-01-30T10:00:00Z",  # Leaf Node만 해당
-        "start_time": None,
-        "end_time": None
+        "start_time": start_time,
+        "end_time": end_time
     }
     
     result = collection.insert_one(goal_schema)

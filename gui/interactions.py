@@ -10,7 +10,7 @@ from models.goal import MakeNode
 from gui.popupMenu import NodePopupMenu, DateRangeDialog
 
 class InteractiveNode(QGraphicsItemGroup):
-    def __init__(self, node, update_callback, *args, **kwargs):
+    def __init__(self, node, update_callback = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.node = node  # MongoDB 데이터
         self.update_callback = update_callback
@@ -76,6 +76,9 @@ class InteractiveNode(QGraphicsItemGroup):
                 # ... 버튼 클릭: NodePopupMenu 표시
                 self.show_popup(event.scenePos())
             else:
+                if not self.node.get("start_time"):
+                    print(f"Node '{self.node['title']}' does not have a valid start_time. Dragging is disabled.")
+                    return
                 # 기본 드래그 시작
                 view = self.scene().views()[0]  # 첫 번째 뷰 가져오기
                 print("Views: ", self.scene().views())

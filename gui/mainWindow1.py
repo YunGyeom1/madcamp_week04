@@ -11,7 +11,7 @@ load_dotenv()
 from models.goal import MakeNode, collection
 from gui.interactions import InteractiveNode
 from gui.showTree import TreeWidget
-from gui.sideBar import Sidebar  # Sidebar를 가져옴
+from gui.sideDate import DateSidebar
 
 class MainWindow(QMainWindow):
     def __init__(self, root):
@@ -21,7 +21,7 @@ class MainWindow(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         layout = QHBoxLayout(central_widget)  # Tree와 Sidebar를 나란히 배치
-        
+
         # QGraphicsScene 및 QGraphicsView 설정
         self.scene = QGraphicsScene()
         self.view = QGraphicsView(self.scene)
@@ -33,16 +33,13 @@ class MainWindow(QMainWindow):
         self.scene.addWidget(self.tree_widget)
 
         # QGraphicsView를 레이아웃에 추가
-        layout.addWidget(self.view, stretch=4)  
+        layout.addWidget(self.view)
 
-        # Sidebar 생성 및 설정
-        self.sidebar = Sidebar()
-        self.sidebar.setFixedWidth(450)  # 사이드바 폭 고정
-        layout.addWidget(self.sidebar, stretch=1)  
+        # DateSidebar 생성 및 설정
+        self.date_sidebar = DateSidebar()
+        self.date_sidebar.setFixedWidth(450)  # 사이드바 폭 고정
+        layout.addWidget(self.date_sidebar)
 
-        
-
-        
         # 윈도우 기본 설정
         self.setWindowTitle("Resizable Tree and Sidebar")
         self.resize(1200, 600)
