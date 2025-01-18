@@ -52,6 +52,8 @@ def add_leaf(node):
     leaf = collection.insert_one(data)
     collection.update_one({"_id": node}, {"$push": {"children": leaf.inserted_id}})
     collection.update_one({"_id": leaf.inserted_id}, {"$set": {"parent": node}})
+    update_height(node)
+    return leaf.inserted_id
 
 
 def update_height(node, cache=None):
