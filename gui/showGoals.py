@@ -1,3 +1,4 @@
+#showGoals.py
 from PyQt5.QtWidgets import QApplication, QGraphicsView, QGraphicsScene, QGraphicsEllipseItem, QGraphicsTextItem, QGraphicsItemGroup, QGraphicsLineItem
 from PyQt5.QtCore import Qt, QPointF
 from PyQt5.QtGui import QBrush, QPen, QPainter
@@ -93,9 +94,5 @@ def create_sample_tree():
 if __name__ == "__main__":
     root_node = create_sample_tree()
     visualize_tree(root_node)
-
-
-
-
-        self.scene.clear()
-        self.place_node(self.root, 100, 100)
+    self.scene.clear()
+    self.place_node(self.root, 100, 100)
