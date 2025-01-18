@@ -42,34 +42,55 @@ def add_child(parent_id, child_id):
 
 def add_leaf(node):
     """캘린더에 드래그 앤 드롭했을 때 호출되는 함수"""
-    data = collection.find_one({"_id": ObjectId(node)})
+    data = collection.find_one({"_id": node})
     data.pop('_id')
     leaf = collection.insert_one(data)
     collection.update_one({"_id": node}, {"$push": {"children": leaf.inserted_id}})
     collection.update_one({"_id": leaf.inserted_id}, {"$set": {"parent": node}})
 
 
-def update_height(node):
+def update_height(node, cache=None):
     """부모 및 조상 노드의 높이와 너비를 갱신."""
-    data = collection.find_one({"_id": ObjectId(node)})
+    if cache is None:
+        cache = {}
+
+    # 노드 데이터 가져오기 (캐시에서 검색)
+    if node not in cache:
+        data = collection.find_one({"_id": node})
+        cache[node] = data
+    else:
+        data = cache[node]
+    
     maxheight = 1
-    for childid in data["children"]:
-        child = collection.find_one({"_id": ObjectId(childid)})
-        if child["height"]+1 > maxheight:
-            maxheight = child["height"]+1
-    data["height"] = maxheight
-
     width = 1
+    
+    # 자식들의 높이와 너비를 갱신
     for childid in data["children"]:
-        child = collection.find_one({"_id": ObjectId(childid)})
+        if childid not in cache:
+            child = collection.find_one({"_id": childid})
+            cache[childid] = child
+        else:
+            child = cache[childid]
+        
+        maxheight = max(maxheight, child["height"] + 1)
         width += child["width"]
-    data["width"] = width
 
-    if data["parent"]!=None:
-        update_height(data["parent"])
+    # 데이터베이스에 업데이트
+    collection.update_one(
+        {"_id": node},
+        {"$set": {"height": maxheight, "width": width}}
+    )
+
+    # 부모 노드 갱신 (재귀적으로 호출)
+    if data["parent"] is not None:
+        update_height(data["parent"], cache)
+
+
+    
+
     
 
 def is_leaf(node):
     """리프 노드 여부 확인."""
-    data = collection.find_one({"_id": ObjectId(node)})
+    data = collection.find_one({"_id": node})
     return len(data["children"]) == 0

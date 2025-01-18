@@ -7,7 +7,22 @@ from PyQt5.QtCore import Qt, QRectF
 class NodePopupMenu(QMenu):
     def __init__(self, parent=None):
         super().__init__(parent)
-
+        self.setStyleSheet("""
+            QMenu {
+                background-color: rgba(255, 255, 255, 70);
+                border: 1px solid #cccccc;
+                font-size: 14px;
+                padding: 5px;
+            }
+            QMenu::item {
+                padding: 5px;
+                border-radius: 5px;
+            }
+            QMenu::item:selected {
+                background-color: #0078d4;
+                color: white;
+            }
+        """)
         # 팝업 메뉴 항목 추가
         self.action_description = QAction("Description", self)
         self.action_duration = QAction("달성 기간 설정", self)
