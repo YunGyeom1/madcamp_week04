@@ -22,14 +22,38 @@ class NodePopupMenu(QMenu):
         self.addAction(self.action_repeat)
         self.addAction(self.action_toggle_visibility)
 
-    def connect_signals(self, callbacks):
-        """콜백 함수들을 메뉴 항목에 연결."""
-        self.action_description.triggered.connect(callbacks.get("description", lambda: None))
-        self.action_duration.triggered.connect(callbacks.get("duration", lambda: None))
-        self.action_tag.triggered.connect(callbacks.get("tag", lambda: None))
-        self.action_repeat.triggered.connect(callbacks.get("repeat", lambda: None))
-        self.action_toggle_visibility.triggered.connect(callbacks.get("toggle_visibility", lambda: None))
+    def on_description_clicked(self):
+        """Description 클릭: 노드 제목 변경."""
+        new_title, ok = QInputDialog.getText(None, "노드 제목 변경", "새 제목을 입력하세요:", text=self.node.title)
+        if ok and new_title:
+            self.node.title = new_title
+            self.title_text.setText(new_title)
+            print(f"노드 제목이 '{new_title}'로 변경되었습니다.")
 
+    def on_duration_clicked(self):
+        """달성 기간 설정 클릭: 캘린더로 시작/종료 날짜 설정."""
+        dialog = DateRangeDialog()
+        if dialog.exec_():  # 사용자가 "확인" 버튼을 클릭하면
+            start_date, end_date = dialog.get_dates()
+            print(f"달성 기간 설정: 시작={start_date}, 종료={end_date}")
+            self.node.start_date = start_date
+            self.node.end_date = end_date
+
+    def on_tag_clicked(self):
+        """태그 설정 클릭: 노드 태그 추가."""
+        new_tag, ok = QInputDialog.getText(None, "태그 추가", "새 태그를 입력하세요:")
+        if ok and new_tag:
+            if not hasattr(self.node, "tags"):
+                self.node.tags = []
+            self.node.tags.append(new_tag)
+            print(f"태그 '{new_tag}'가 추가되었습니다. 현재 태그: {self.node.tags}")
+
+    def on_repeat_clicked(self):
+        """반복 설정 클릭: 추가 구현 필요."""
+        print("반복 설정 기능은 아직 구현되지 않았습니다.")
+
+    def on_toggle_visibility_clicked(self):
+        print("NO")
 
 class DateRangeDialog(QDialog):
     """캘린더를 이용하여 날짜 범위를 설정하는 다이얼로그."""
