@@ -12,9 +12,9 @@ collection = db["Test"]
 
 
 def MakeNode(title: str, parent: ObjectId, description: str = "", tag: str = "", location: str = ""):
-    """부모 노드에 시간 일정이 있으면 자식 노드를 만들 수 없게"""
-    parent = collection.find_one({"_id": parent})
-    if parent["start_time"] is not None and parent["end_time"] is not None:
+    """부모 노드에 시간 일정이 있으면 자식 노드를 만들 수 없도록"""
+    parent_node = collection.find_one({"_id": parent})
+    if parent_node["start_time"] is not None and parent_node["end_time"] is not None:
         print("부모 노드가 leaf 노드입니다.")
         return
     goal_schema = {
@@ -25,7 +25,7 @@ def MakeNode(title: str, parent: ObjectId, description: str = "", tag: str = "",
         "task": [0, 0, 0],
         "tag": tag,
         "height": 1,
-        "width": 0,
+        "width": 1,
         "isOpen": True,
         "location": location,
         "due_date": "2025-01-30T10:00:00Z",  # Leaf Node만 해당
@@ -67,7 +67,7 @@ def update_height(node, cache=None):
         data = cache[node]
     
     maxheight = 1
-    width = 1
+    width = 0
     
     # 자식들의 높이와 너비를 갱신
     for childid in data["children"]:
@@ -83,7 +83,7 @@ def update_height(node, cache=None):
     # 데이터베이스에 업데이트
     collection.update_one(
         {"_id": node},
-        {"$set": {"height": maxheight, "width": width}}
+        {"$set": {"height": maxheight, "width": max(width, 1)}}
     )
 
     # 부모 노드 갱신 (재귀적으로 호출)
