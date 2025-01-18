@@ -1,14 +1,11 @@
 #interactions.py
 from PyQt5.QtWidgets import (
-    QGraphicsEllipseItem, QGraphicsTextItem, QGraphicsRectItem, QGraphicsItemGroup, QGraphicsSimpleTextItem, QInputDialog
+    QGraphicsEllipseItem, QGraphicsTextItem, QGraphicsRectItem, QGraphicsItemGroup, QGraphicsSimpleTextItem, QInputDialog, QMenu
 )
-from PyQt5.QtGui import QColor, QBrush, QPen
-from PyQt5.QtCore import Qt, QRectF
+from PyQt5.QtGui import QColor, QBrush, QPen, QFont
+from PyQt5.QtCore import Qt, QRectF, QPointF
 from models.goal import GoalNode
 from gui.popupMenu import NodePopupMenu, DateRangeDialog
-from PyQt5.QtGui import QFont  # 글꼴 설정을 위해 필요
-from PyQt5.QtCore import QPointF  # 위치 계산에 필요
-from PyQt5.QtWidgets import QMenu  # PopupMenu 실행을 위해 필요
 
 class InteractiveNode(QGraphicsItemGroup):
 
@@ -24,11 +21,11 @@ class InteractiveNode(QGraphicsItemGroup):
         self.background.setZValue(-1)
         self.addToGroup(self.background)
 
-        # 상태 표시 (원형 상태 표시기)
-        self.status_indicator = QGraphicsEllipseItem(10, 30, 20, 20)
-        self.status_indicator.setBrush(QBrush(Qt.red))
-        self.status_indicator.setPen(QPen(Qt.black))
-        self.addToGroup(self.status_indicator)
+        # # 상태 표시 (원형 상태 표시기)
+        # self.status_indicator = QGraphicsEllipseItem(10, 30, 20, 20)
+        # self.status_indicator.setBrush(QBrush(Qt.red))
+        # self.status_indicator.setPen(QPen(Qt.black))
+        # self.addToGroup(self.status_indicator)
 
         # 제목 텍스트 (가독성 높은 글꼴)
         self.title_text = QGraphicsSimpleTextItem(node.title)
@@ -36,11 +33,11 @@ class InteractiveNode(QGraphicsItemGroup):
         self.title_text.setPos(40, 10)
         self.addToGroup(self.title_text)
 
-        # 하위 텍스트 (작은 설명)
-        self.sub_text = QGraphicsSimpleTextItem("달성 기간: 2주")
-        self.sub_text.setFont(QFont("Arial", 10))
-        self.sub_text.setPos(40, 40)
-        self.addToGroup(self.sub_text)
+        # # 하위 텍스트 (작은 설명)
+        # self.sub_text = QGraphicsSimpleTextItem("달성 기간: 2주")
+        # self.sub_text.setFont(QFont("Arial", 10))
+        # self.sub_text.setPos(40, 40)
+        # self.addToGroup(self.sub_text)
 
         # "+" 버튼 (노드 오른쪽에 위치)
         self.plus_button = QGraphicsEllipseItem(170, 25, 30, 30)
@@ -53,6 +50,25 @@ class InteractiveNode(QGraphicsItemGroup):
         self.plus_text.setFont(QFont("Arial", 14, QFont.Bold))
         self.plus_text.setPos(180, 30)
         self.plus_text.setParentItem(self.plus_button)
+
+        self.menu_button = QGraphicsEllipseItem(130, 25, 30, 30)
+        self.menu_button.setBrush(QBrush(Qt.lightGray))
+        self.menu_button.setPen(QPen(Qt.black))
+        self.addToGroup(self.menu_button)
+
+        # "..." 텍스트
+        self.menu_text = QGraphicsSimpleTextItem("...")
+        self.menu_text.setFont(QFont("Arial", 10, QFont.Bold))
+        self.menu_text.setPos(140, 30)
+        self.menu_text.setParentItem(self.menu_button)
+
+
+        self.popupMenu = NodePopupMenu(None)
+        self.popupMenu.addAction("설명 변경", lambda: self.popupMenu.on_description_clicked(self.node, self.title_text))
+        self.popupMenu.addAction("달성 기간 설정", lambda: self.popupMenu.on_duration_clicked(self.node))
+        self.popupMenu.addAction("태그 추가", lambda: self.popupMenu.on_tag_clicked(self.node))
+        self.popupMenu.addAction("반복 설정", self.popupMenu.on_repeat_clicked)
+        self.popupMenu.addAction("숨기기/보이기 토글", lambda: self.popupMenu.on_toggle_visibility_clicked(self.node))
     
     def mousePressEvent(self, event):
         try:
@@ -64,7 +80,7 @@ class InteractiveNode(QGraphicsItemGroup):
                 # 업데이트 콜백 호출
                 if self.update_callback:
                     self.update_callback()
-            elif self.menu_button_rect.contains(event.pos()):  # ... 버튼 클릭 시 팝업 메뉴 실행
+            elif self.menu_button.contains(event.pos()):  # ... 버튼 클릭 시 팝업 메뉴 실행
                 self.popupMenu.exec_(event.screenPos())
             else:
                 self.isDragging = True  # 드래그 시작
@@ -81,7 +97,6 @@ class InteractiveNode(QGraphicsItemGroup):
             self.setPos(self.original_pos + new_pos)  # 새 위치로 이동
         super().mouseMoveEvent(event)
 
-
     def mouseReleaseEvent(self, event):
         if self.isDragging:  # 드래그 종료
             self.isDragging = False
@@ -97,37 +112,7 @@ class InteractiveNode(QGraphicsItemGroup):
             self.update_callback()
         super().mouseReleaseEvent(event)
     
-    def on_description_clicked(self):
-        """Description 클릭: 노드 제목 변경."""
-        new_title, ok = QInputDialog.getText(None, "노드 제목 변경", "새 제목을 입력하세요:", text=self.node.title)
-        if ok and new_title:
-            self.node.title = new_title
-            self.title_text.setText(new_title)
-            print(f"노드 제목이 '{new_title}'로 변경되었습니다.")
 
-    def on_duration_clicked(self):
-        """달성 기간 설정 클릭: 캘린더로 시작/종료 날짜 설정."""
-        dialog = DateRangeDialog()
-        if dialog.exec_():  # 사용자가 "확인" 버튼을 클릭하면
-            start_date, end_date = dialog.get_dates()
-            print(f"달성 기간 설정: 시작={start_date}, 종료={end_date}")
-            self.node.start_date = start_date
-            self.node.end_date = end_date
-
-    def on_tag_clicked(self):
-        """태그 설정 클릭: 노드 태그 추가."""
-        new_tag, ok = QInputDialog.getText(None, "태그 추가", "새 태그를 입력하세요:")
-        if ok and new_tag:
-            if not hasattr(self.node, "tags"):
-                self.node.tags = []
-            self.node.tags.append(new_tag)
-            print(f"태그 '{new_tag}'가 추가되었습니다. 현재 태그: {self.node.tags}")
-
-    def on_repeat_clicked(self):
-        """반복 설정 클릭: 추가 구현 필요."""
-        print("반복 설정 기능은 아직 구현되지 않았습니다.")
-
-    def on_toggle_visibility_clicked(self):
         """숨기기 토글 클릭: isOpen 상태 변경."""
         self.isOpen = not self.isOpen
         print(f"노드 숨기기 상태가 '{self.isOpen}'로 변경되었습니다.")
