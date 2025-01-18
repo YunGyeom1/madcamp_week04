@@ -27,6 +27,7 @@ def MakeNode(title: str, parent: ObjectId, description: str = "", tag: str = "",
         "start_time": None,
         "end_time": None
     }
+    
     result = collection.insert_one(goal_schema)
     collection.update_one({"_id": parent}, {"$push": {"children": result.inserted_id}})
     update_height(parent)
