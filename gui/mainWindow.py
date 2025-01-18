@@ -78,22 +78,10 @@ def create_sample_tree():
     if not dummy_root_id: return
     # 루트 노드 생성
     root_id = MakeNode("Root", ObjectId(dummy_root_id))
-    print("[INFO] Created Root Node:")
     print_node_details(root_id)
-
-    # 자식 노드 생성
     child1_id = MakeNode("C1", root_id)
-    print("\n[INFO] Created Child Node C1:")
-    print_node_details(child1_id)
-
     child2_id = MakeNode("C2", root_id)
-    print("\n[INFO] Created Child Node C2:")
-    print_node_details(child2_id)
-
     child3_id = MakeNode("C3", child1_id)
-    print("\n[INFO] Created Child Node C3:")
-    print_node_details(child3_id)
-
     child4_id = MakeNode("C4", child1_id)
 
     return root_id  # 루트 노드 ID 반환

@@ -21,6 +21,7 @@ class DateSidebar(QTableWidget):
         self.verticalHeader().setVisible(False)
         self.current_date = QDate.currentDate()  # 현재 날짜
         self.date_range = 30  # 초기 날짜 범위
+        self.setAcceptDrops(True) 
 
         self.populate_dates()
 
@@ -67,23 +68,48 @@ class DateSidebar(QTableWidget):
                 self.load_more_dates(30)  # 스크롤 시 30일 추가 로드
         return super().eventFilter(source, event)
 
-class MainWindow(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("Date Sidebar as Table")
-        self.setGeometry(100, 100, 500, 600)
+    def dragMoveEvent(self, event):
+        print("Drag Move Event Triggered")  # 디버깅
+        if event.mimeData().hasFormat("application/x-node-id"):
+            print("Dragging over valid drop area.")  # 디버깅
+            event.acceptProposedAction()
+        else:
+            print("Dragging over invalid drop area.")  # 디버깅
+            event.ignore()
+    def dropEvent(self, event):
+        print("Drop Event Triggered")  # 디버깅: 드롭 이벤트 발생
+        if event.mimeData().hasFormat("application/x-node-id"):
+            print("Valid MIME data format detected.")  # 디버깅: 올바른 데이터 형식
+            try:
+                # 드래그된 데이터 추출
+                node_id = event.mimeData().data("application/x-node-id").data().decode("utf-8")
+                node_title = event.mimeData().text()
 
-        # DateSidebar 추가
-        self.sidebar = DateSidebar()
+                print(f"Extracted Node ID: {node_id}, Title: {node_title}")  # 디버깅: 데이터 추출 확인
 
-        # 레이아웃 설정
-        layout = QVBoxLayout()
-        layout.addWidget(self.sidebar)
-        self.setLayout(layout)
+                # 테이블에 새로운 행 추가
+                row = self.rowCount()
+                self.insertRow(row)
+                print(f"Adding row {row} to the table.")  # 디버깅: 행 추가 확인
 
+                # 내용 추가 (노드 제목)
+                content_item = QTableWidgetItem(node_title)
+                content_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+                self.setItem(row, 0, content_item)
+                print(f"Set content for row {row}, column 0: {node_title}")  # 디버깅: 콘텐츠 추가 확인
 
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    main_window = MainWindow()
-    main_window.show()
-    sys.exit(app.exec_())
+                # 날짜 추가 (현재 날짜 사용)
+                date_item = QTableWidgetItem(self.current_date.toString("yyyy-MM-dd"))
+                date_item.setTextAlignment(Qt.AlignCenter)
+                self.setItem(row, 1, date_item)
+                print(f"Set date for row {row}, column 1: {self.current_date.toString('yyyy-MM-dd')}")  # 디버깅: 날짜 추가 확인
+
+                # 드롭 완료 메시지
+                print(f"Dropped Node ID: {node_id}, Title: {node_title}")
+                event.acceptProposedAction()
+            except Exception as e:
+                print(f"Error during dropEvent: {e}")  # 디버깅: 오류 출력
+                event.ignore()
+        else:
+            print("Invalid MIME data format.")  # 디버깅: 잘못된 데이터 형식
+            event.ignore()

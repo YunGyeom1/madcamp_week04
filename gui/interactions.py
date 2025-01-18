@@ -1,12 +1,13 @@
 #interactions.py
 from PyQt5.QtWidgets import (
-    QGraphicsEllipseItem, QGraphicsTextItem, QGraphicsRectItem, QGraphicsItemGroup, QGraphicsSimpleTextItem, QInputDialog, QMenu, QGraphicsTextItem, QGraphicsItem
+    QGraphicsEllipseItem, QGraphicsTextItem, QGraphicsRectItem,
+    QGraphicsItemGroup, QGraphicsSimpleTextItem, QInputDialog, QMenu,
+    QGraphicsItem, QListWidget
 )
-from PyQt5.QtGui import QColor, QBrush, QPen, QFont
-from PyQt5.QtCore import Qt, QRectF, QPointF
+from PyQt5.QtGui import QColor, QBrush, QPen, QFont, QDrag
+from PyQt5.QtCore import Qt, QRectF, QPointF, QMimeData
 from models.goal import MakeNode
 from gui.popupMenu import NodePopupMenu, DateRangeDialog
-
 class InteractiveNode(QGraphicsItemGroup):
     def __init__(self, node, update_callback, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -59,8 +60,12 @@ class InteractiveNode(QGraphicsItemGroup):
                     self.update_callback()
             else:
                 # 기본 드래그 시작
-                self.isDragging = True
-                self.original_pos = self.pos()
+                drag = QDrag(event.widget())
+                mime_data = QMimeData()
+                mime_data.setData("application/x-node-id", str(self.node["_id"]).encode("utf-8"))  # 노드 ID 전달
+                mime_data.setText(self.node["title"])  # 노드 제목 전달
+                drag.setMimeData(mime_data)
+                drag.exec_(Qt.MoveAction)
         except Exception as e:
             print(f"Error in mousePressEvent: {e}")
 
@@ -68,19 +73,17 @@ class InteractiveNode(QGraphicsItemGroup):
         if hasattr(self, "isDragging") and self.isDragging:
             new_pos = self.mapToScene(event.pos()) - self.mapToScene(event.buttonDownPos(Qt.LeftButton))
             self.setPos(self.original_pos + new_pos)
-            print(f"Dragging to position: {self.pos()}")
 
     def mouseReleaseEvent(self, event):
         if hasattr(self, "isDragging") and self.isDragging:
             self.isDragging = False
-            print(f"Drag ended at position: {self.pos()}")
 
         if self.update_callback:
             self.update_callback()
+
     def mouseReleaseEvent(self, event):
         if hasattr(self, 'isDragging') and self.isDragging:  # 드래그 종료
             self.isDragging = False
-            print(f"Dragging ended at position: {self.pos()}")
 
         if self.update_callback:  # 업데이트 콜백 호출
             self.update_callback()
