@@ -11,12 +11,12 @@ collection = db["Test"]
 
 
 
-def MakeNode(title: str, description: str = "", parent = None, tag: str = "", location: str = ""):
+def MakeNode(title: str, parent: ObjectId, description: str = "", tag: str = "", location: str = ""):
     goal_schema = {
         "title": title,
         "description": description,
         "children": [],  # 하위 목표의 ID 리스트
-        "parent": None,
+        "parent": parent,
         "task": [0, 0, 0],
         "tag": tag,
         "height": 1,
@@ -27,7 +27,10 @@ def MakeNode(title: str, description: str = "", parent = None, tag: str = "", lo
         "start_time": None,
         "end_time": None
     }
-    collection.insert_one(goal_schema)
+    result = collection.insert_one(goal_schema)
+    collection.update_one({"_id": parent}, {"$push": {"children": result.inserted_id}})
+    update_height(parent)
+    return result.inserted_id
 
 
 def add_child(parent_id, child_id):
@@ -36,6 +39,14 @@ def add_child(parent_id, child_id):
     result = collection.update_one({"_id": child_id}, {"$set": {"parent": parent_id}})
     print(f"Update result for parent: {result.modified_count}")
     update_height(parent_id)
+
+def add_leaf(node):
+    """캘린더에 드래그 앤 드롭했을 때 호출되는 함수"""
+    data = collection.find_one({"_id": ObjectId(node)})
+    data.pop('_id')
+    leaf = collection.insert_one(data)
+    collection.update_one({"_id": node}, {"$push": {"children": leaf.inserted_id}})
+    collection.update_one({"_id": leaf.inserted_id}, {"$set": {"parent": node}})
 
 
 def update_height(node):
