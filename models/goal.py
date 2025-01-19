@@ -2,107 +2,120 @@ from pymongo import MongoClient
 from bson.objectid import ObjectId
 import os
 from dotenv import load_dotenv
-load_dotenv()
-
-connection_string = os.getenv("MONGODB_URI")
-client = MongoClient(connection_string)
-db = client["W4_Calendar"]
-collection = db["Test"]
-
+import configparser
+import copy
+from db.db import get_collection
+from models.tags import sync_tags_with_goals
+collection = get_collection()
 
 
-def MakeNode(
-    title: str = "Untitled Node",  # 기본 제목
-    parent: ObjectId = None,       # 부모 ID (없으면 루트 노드)
-    description: str = "",         # 기본 설명
-    tag: str = "",                 # 기본 태그
-    location: str = "",             # 기본 위치
-    start_time = None,
-    end_time = None
-):
-    """부모 노드에 시간 일정이 있으면 자식 노드를 만들 수 없도록"""
-    parent_node = collection.find_one({"_id": parent})
-    if parent and (parent_node["start_time"] or parent_node["end_time"]):
-        print("부모 노드가 leaf 노드입니다.")
-        return
-    goal_schema = {
+GOAL_SCHEMA_TEMPLATE = {
+    "parent": None,
+    "children": [],
+    
+    "title": "Untitled Node",
+    "description": "",
+    "isOpen": True,
+    "due_date": None,
+    "location": "",
+    "tag": [],
+
+    "height": 0,
+    "width": 1,
+    "task": [0, 0, 0],
+    "date": None,
+    "start_time": None,
+    "end_time": None,
+}
+
+
+def MakeNode(title="Untitled Node", parent=None, description=""):
+    goal_schema = copy.deepcopy(GOAL_SCHEMA_TEMPLATE)  # 원본 수정 방지
+    goal_schema.update({
         "title": title,
         "description": description,
-        "children": [],  # 하위 목표의 ID 리스트
         "parent": parent,
-        "task": [0, 0, 0],
-        "tag": tag,
-        "height": 1,
-        "width": 1,
-        "isOpen": True,
-        "location": location,
-        "due_date": "2025-01-30T10:00:00Z",  # Leaf Node만 해당
-        "start_time": start_time,
-        "end_time": end_time
-    }
-    
+        "tag": ["all"],  # 항상 'all' 태그를 포함
+    })
+
     result = collection.insert_one(goal_schema)
-    collection.update_one({"_id": parent}, {"$push": {"children": result.inserted_id}})
-    update_height(parent)
+
+    if parent:
+        collection.update_one({"_id": parent}, {"$push": {"children": result.inserted_id}})
+        update_height(parent)
+    sync_tags_with_goals()
     return result.inserted_id
 
+def set_time(node_id, start_time=None, end_time=None):
+    update_data = {"width":1, "height":0}
+    if start_time:
+        update_data["start_time"] = start_time
+    if end_time:
+        update_data["end_time"] = end_time
 
-def add_child(parent_id, child_id):
-    """자식 노드 추가 및 부모 관계 설정. MakeNode로 합쳐서 이젠 필요없음"""
-    collection.update_one({"_id": parent_id}, {"$push": {"children": child_id}})
-    result = collection.update_one({"_id": child_id}, {"$set": {"parent": parent_id}})
-    print(f"Update result for parent: {result.modified_count}")
-    update_height(parent_id)
+    collection.update_one({"_id": node_id}, {"$set": update_data})
+    return node_id
 
-def add_leaf(node):
-    """캘린더에 드래그 앤 드롭했을 때 호출되는 함수"""
-    data = collection.find_one({"_id": node})
+
+def add_leaf(node_id, date=None):
+    """새로운 leaf 노드를 생성하고 MongoDB에 저장"""
+    data = collection.find_one({"_id": node_id})
+    # 기존 노드 데이터 복사 및 불필요한 필드 제거
     data.pop('_id')
+    data.pop('children', None)
+    data["parent"] = node_id
+    data["date"] = date  # 전달받은 날짜 추가
+    data["title"] = f"Leaf of {data.get('title', 'Untitled')}"
+
+    # 새 노드 MongoDB에 삽입
     leaf = collection.insert_one(data)
-    collection.update_one({"_id": node}, {"$push": {"children": leaf.inserted_id}})
-    collection.update_one({"_id": leaf.inserted_id}, {"$set": {"parent": node}})
-    update_height(node)
+
+    # 부모 노드에 새 노드 추가
+    collection.update_one({"_id": node_id}, {"$push": {"children": leaf.inserted_id}})
+    
     return leaf.inserted_id
 
 
-def update_height(node, cache=None):
-    """부모 및 조상 노드의 높이와 너비를 갱신."""
-    if cache is None:
-        cache = {}
-
-    # 노드 데이터 가져오기 (캐시에서 검색)
-    if node not in cache:
-        data = collection.find_one({"_id": node})
-        cache[node] = data
-    else:
-        data = cache[node]
-    
-    maxheight = 1
+def update_height(node):
+    data = collection.find_one({"_id": node})
+    if data.get("start_time") or data.get("end_time"):
+        return
+   
+    height = 1
     width = 0
     
-    # 자식들의 높이와 너비를 갱신
+    tag_collection = get_collection("Tags")
+    selected_tags = [tag["name"] for tag in tag_collection.find({"selected": True})]
+    restricted_tags = [tag["name"] for tag in tag_collection.find({"restricted": True})]
+
+    
     for childid in data["children"]:
-        if childid not in cache:
-            child = collection.find_one({"_id": childid})
-            cache[childid] = child
-        else:
-            child = cache[childid]
-        
-        maxheight = max(maxheight, child["height"] + 1)
+        child = collection.find_one({"_id": childid})
+
+        if not child:
+            continue
+
+        # 1. 선택된 태그 중 하나라도 포함되지 않으면 제외
+        if not any(tag in selected_tags for tag in child["tag"]):
+            continue
+
+        # 2. 금지된 태그가 포함된 경우 모든 태그가 선택되었는지 확인
+        restricted_in_child = [tag for tag in child["tag"] if tag in restricted_tags]
+        if restricted_in_child and not all(tag in selected_tags for tag in restricted_in_child):
+            continue
+
+        height = max(height, child["height"] + 1)
         width += child["width"]
 
     # 데이터베이스에 업데이트
     collection.update_one(
         {"_id": node},
-        {"$set": {"height": maxheight, "width": max(width, 1)}}
+        {"$set": {"height": height, "width": max(width, 1)}}
     )
 
     # 부모 노드 갱신 (재귀적으로 호출)
     if data["parent"] is not None:
-        update_height(data["parent"], cache)
-
-
-    
+        update_height(data["parent"])
 
     
 
@@ -110,3 +123,28 @@ def is_leaf(node):
     """리프 노드 여부 확인."""
     data = collection.find_one({"_id": node})
     return len(data["children"]) == 0
+
+def update_tags(node_id, add_tags=[], remove_tags=[]):
+
+    # 노드 가져오기
+    node = collection.find_one({"_id": node_id})
+    if not node:
+        raise ValueError(f"Node with ID {node_id} does not exist.")
+
+    # 기존 태그 가져오기
+    current_tags = set(node.get("tag", []))
+
+    # 태그 업데이트
+    updated_tags = current_tags.union(set(add_tags)).difference(set(remove_tags))
+
+    # 데이터베이스 업데이트
+    collection.update_one(
+        {"_id": node_id},
+        {"$set": {"tag": list(updated_tags)}}
+    )
+
+    # 태그 컬렉션 동기화
+    sync_tags_with_goals()
+
+    print(f"Updated tags for node {node_id}: {list(updated_tags)}")
+    return list(updated_tags)

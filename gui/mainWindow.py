@@ -8,46 +8,70 @@ import os
 # .env 파일 로드
 load_dotenv()
 
-from models.goal import MakeNode, collection
-from gui.interactions import InteractiveNode
+from models.goal import MakeNode, collection, set_time
 from gui.showTree import TreeWidget
 from gui.sideBar import Sidebar  # Sidebar를 가져옴
+from gui.filter import TagFilterWidget
+from models.tags import load_tags
 
 class MainWindow(QMainWindow):
     def __init__(self, root):
         super().__init__()
 
-        # 중앙 위젯 및 수평 레이아웃 설정
+        # 중앙 위젯 및 수직 레이아웃 설정
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        layout = QHBoxLayout(central_widget)  # Tree와 Sidebar를 나란히 배치
-        
+        layout = QVBoxLayout(central_widget)  # 세로 레이아웃 사용 (필터와 트리를 세로로 배치)
+
+        # 태그 필터 생성 및 추가
+        self.tags = load_tags()
+        self.filter_widget = TagFilterWidget(self.tags, self.update_tree)
+        layout.addWidget(self.filter_widget)  # 필터를 위에 추가
+
+        # 수평 레이아웃: Tree와 Sidebar 배치
+        main_layout = QHBoxLayout()
+        layout.addLayout(main_layout)  # 수평 레이아웃을 세로 레이아웃에 추가
+
         # QGraphicsScene 및 QGraphicsView 설정
         self.scene = QGraphicsScene()
         self.view = QGraphicsView(self.scene)
         self.view.setRenderHint(QPainter.Antialiasing)
 
-        # TreeWidget을 장면에 추가
+        # 트리 위젯 생성
         self.tree_widget = TreeWidget(root)
-        self.tree_widget.setGeometry(0, 0, 750, 600)  # 초기 크기 설정 (필요 시 제거 가능)
-        self.scene.addWidget(self.tree_widget)
+        self.tree_widget.setGeometry(0, 0, 750, 600)  # 초기 크기 설정
+        self.scene.addWidget(self.tree_widget)  # 트리 위젯 추가
 
         # QGraphicsView를 레이아웃에 추가
-        layout.addWidget(self.view, stretch=4)  
+        main_layout.addWidget(self.view, stretch=4)
 
-        # Sidebar 생성 및 설정
+        # Sidebar 생성 및 설정 (사이드바는 오른쪽에 배치)
         self.sidebar = Sidebar()
         self.sidebar.setFixedWidth(450)  # 사이드바 폭 고정
-        layout.addWidget(self.sidebar, stretch=1)  
-
-        
-
+        main_layout.addWidget(self.sidebar, stretch=1)  # Sidebar 배치
         
         # 윈도우 기본 설정
-        self.setWindowTitle("Resizable Tree and Sidebar")
-        self.resize(1200, 600)
+        self.setWindowTitle("Resizable Tree and Sidebar with Filter")
+        self.resize(1200, 800)
         self.setMinimumSize(800, 600)
 
+    def update_tree(self):
+        print("Updating tree...")
+        self.tree_widget.update_tree()
+
+    def resizeEvent(self, event):
+        """윈도우 크기 조정 이벤트 처리."""
+        super().resizeEvent(event)
+
+        # QGraphicsView의 크기를 MainWindow의 크기에 맞게 조정
+        self.view.setGeometry(self.rect())
+
+        # TreeWidget의 크기를 QGraphicsView에 맞게 조정
+        if self.tree_widget:
+            self.tree_widget.setGeometry(0, 0, self.view.width(), self.view.height())
+        self.filter_widget.setFixedHeight(self.filter_widget.sizeHint().height())
+
+            
 def create_sample_tree():
     def print_node_details(node_id):
         node = collection.find_one({"_id": ObjectId(node_id)})
@@ -57,20 +81,19 @@ def create_sample_tree():
         else:
             print(f"[ERROR] Node with ID {node_id} not found.")
 
-    dummy_root_id = os.getenv("DUMMY_ROOT_ID")
-    print(dummy_root_id)
-    if not dummy_root_id: 
-        return
-
     # 루트 노드 생성
-    root_id = MakeNode(title="Root", parent=ObjectId(dummy_root_id))
+    root_id = MakeNode("Root")
     print_node_details(root_id)
 
-    # 자식 노드 생성
     child1_id = MakeNode("C1", root_id)
     child2_id = MakeNode("C2", root_id)
-    child3_id = MakeNode("C3", child1_id, start_time="09:00", end_time="10:00")  # 시간 설정
-    child4_id = MakeNode("C4", child1_id, start_time="10:30", end_time="11:30")  # 시간 설정
+    child3_id = MakeNode("C3", child1_id)  # 시간 없이 생성
+    child4_id = MakeNode("C4", child1_id)  # 시간 없이 생성
+
+    # set_time 함수로 시간 설정
+    set_time(child3_id, start_time="09:00", end_time="10:00")
+    set_time(child4_id, start_time="10:30", end_time="11:30")
+
 
     return root_id
 

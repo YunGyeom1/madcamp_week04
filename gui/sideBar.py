@@ -1,33 +1,35 @@
 # sidebar.py
 import sys
-from PyQt5.QtCore import Qt, QDate, QEvent
-from PyQt5.QtWidgets import (
-    QApplication, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget, QAbstractScrollArea
-)
-from PyQt5.QtWidgets import QWidget, QVBoxLayout
-from models.goal import add_leaf
-from pymongo import MongoClient
-from bson.objectid import ObjectId
 import os
 from dotenv import load_dotenv
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
-from PyQt5.QtWidgets import QLabel, QVBoxLayout, QWidget
+from PyQt5.QtCore import Qt, QDate, QEvent
+from PyQt5.QtWidgets import (
+    QApplication, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget, QAbstractScrollArea, QMainWindow, QLabel
+)
+from PyQt5.QtWidgets import QVBoxLayout
+from pymongo import MongoClient
+from bson.objectid import ObjectId
 from gui.endNode import EndNode
-load_dotenv()
+from models.goal import add_leaf
 
 # MongoDB 설정
+load_dotenv()
 connection_string = os.getenv("MONGODB_URI")
 client = MongoClient(connection_string)
 db = client["W4_Calendar"]
 collection = db["Test"]
 
-
-
 class Sidebar(QTableWidget):
     def __init__(self, parent=None):
-        super().__init__(0, 2, parent)  # 2열 테이블
+        super().__init__(0, 2, parent)  # 2열 테이블 초기화
         self.date_range = 30  # 날짜 범위 초기화
         self.current_date = QDate.currentDate()  # 현재 날짜 초기화
+
+        self._setup_ui()
+        self.populate_table()
+
+    def _setup_ui(self):
+        """UI 초기 설정"""
         self.setHorizontalHeaderLabels(["Node", "Date"])  # 헤더 설정
         self.setColumnWidth(0, 300)
         self.setColumnWidth(1, 150)
@@ -38,9 +40,6 @@ class Sidebar(QTableWidget):
         self.verticalHeader().setVisible(False)
         self.setAcceptDrops(True)
         self.setAttribute(Qt.WA_AcceptDrops, True)
-        self.populate_table()
-
-        print("Sidebar initialized")
 
     def populate_table(self):
         """날짜는 항상 표시되며, 데이터가 있는 경우 함께 표시."""
@@ -116,25 +115,42 @@ class Sidebar(QTableWidget):
             node_title = event.mimeData().text()
             event.acceptProposedAction()
 
+            drop_position = event.pos()
+            row = self.rowAt(drop_position.y())
+            if row is None: 
+                return
+            
+            # 드래그한 위치의 날짜 가져오기
+            date_item = self.item(row, 1)
+            if not date_item:
+                print("No date associated with the drop position.")
+            drop_date = date_item.text()
+            
             # MongoDB에서 노드 데이터 확인
             data = collection.find_one({"_id": node_id})
             if not data:
                 print(f"No data found for node ID: {node_id}")
                 return
-
+            
             # 새로운 노드 생성
-            new_leaf_id = add_leaf(node_id)  # MongoDB에 새 leaf 노드 추가
+            new_leaf_id = add_leaf(node_id, date = drop_date)  # MongoDB에 새 leaf 노드 추가
+            print(f"New leaf ID created: {new_leaf_id}")
             new_node_data = collection.find_one({"_id": new_leaf_id})
 
             # Sidebar에 새 노드 추가
             date = new_node_data.get("date", "N/A")
             row = self.find_row_by_date(date)
+            print(f"New node's date: {date}")
             if row is None:
-                row = self.rowCount()
-                self.insertRow(row)
-                date_item = QTableWidgetItem(date)
-                date_item.setTextAlignment(Qt.AlignCenter)
-                self.setItem(row, 1, date_item)
+                print(f"No row found for date: {date}. Creating a new row.")
+            else:
+                print(f"Found existing row for date: {date}, Row index: {row}")
+                if row is None:
+                    row = self.rowCount()
+                    self.insertRow(row)
+                    date_item = QTableWidgetItem(date)
+                    date_item.setTextAlignment(Qt.AlignCenter)
+                    self.setItem(row, 1, date_item)
 
             # 첫 번째 열 업데이트
             node_container = self.cellWidget(row, 0)
@@ -149,13 +165,19 @@ class Sidebar(QTableWidget):
 
             end_node = EndNode(new_node_data)
             container_layout.addWidget(end_node)
-
-            self.resizeRowsToContents()
-            print(f"Added new node with ID: {new_leaf_id} under date: {date}")
+            node_container.setLayout(container_layout)
+            node_container.updateGeometry()
+            QApplication.processEvents()  
+            
+            self.resizeRowToContents(row)
         else:
-            print("Invalid MIME data in dropEvent")
             event.ignore()
 
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasFormat("application/x-node-id"):
+            event.acceptProposedAction()
+        else:
+            event.ignore()
 
     def find_row_by_date(self, date):
         """지정된 날짜에 해당하는 행 번호를 반환."""

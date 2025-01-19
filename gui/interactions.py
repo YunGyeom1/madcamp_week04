@@ -8,14 +8,19 @@ from PyQt5.QtGui import QColor, QBrush, QPen, QFont, QDrag
 from PyQt5.QtCore import Qt, QRectF, QPointF, QMimeData
 from models.goal import MakeNode
 from gui.popupMenu import NodePopupMenu, DateRangeDialog
+from db.db import get_collection
+
+collection = get_collection()
 
 class InteractiveNode(QGraphicsItemGroup):
-    def __init__(self, node, update_callback = None, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, node, update_callback):
+        super().__init__()
         self.node = node  # MongoDB 데이터
         self.update_callback = update_callback
         self.setAcceptedMouseButtons(Qt.LeftButton | Qt.RightButton)
         self.setFlags(QGraphicsItem.ItemIsMovable | QGraphicsItem.ItemIsSelectable)
+        self.setFlag(QGraphicsItem.ItemIsFocusable)
+        self.setFocus()  # 필요시 포커스 설정
 
         # 노드 배경
         self.background = QGraphicsRectItem(0, 0, 200, 80)
@@ -60,13 +65,26 @@ class InteractiveNode(QGraphicsItemGroup):
         self.menu_text.setPos(150, 30)
         self.menu_text.setParentItem(self.menu_button)
 
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Backspace:
+            # deleted 태그 추가
+            if "deleted" not in self.node["tag"]:
+                self.node["tag"].append("deleted")
+
+            # MongoDB 업데이트 (필요 시)
+            collection.update_one({"_id": self.node["_id"]}, {"$addToSet": {"tag": "deleted"}})
+            
+            # 트리 리랜더링
+            if self.update_callback:
+                self.update_callback()
+        else:
+            super().keyPressEvent(event)
 
     def mousePressEvent(self, event):
         try:
             if self.plus_button.contains(self.mapFromScene(event.scenePos())):
                 # + 버튼 클릭: 새 자식 노드 추가
                 new_child_id = MakeNode(f"Child of {self.node['title']}", self.node["_id"])
-                print(f"New child node created with ID: {new_child_id}")
                 # 데이터 갱신
                 self.node["children"].append(new_child_id)
 
@@ -77,19 +95,14 @@ class InteractiveNode(QGraphicsItemGroup):
                 self.show_popup(event.scenePos())
             else:
                 if not self.node.get("start_time"):
-                    print(f"Node '{self.node['title']}' does not have a valid start_time. Dragging is disabled.")
                     return
                 # 기본 드래그 시작
                 view = self.scene().views()[0]  # 첫 번째 뷰 가져오기
-                print("Views: ", self.scene().views())
-                for idx, view in enumerate(self.scene().views()):
-                    print(f"View {idx}: {view}, Type: {type(view)}")
                 drag = QDrag(view)
                 mime_data = QMimeData()
                 mime_data.setData("application/x-node-id", str(self.node["_id"]).encode("utf-8"))
                 mime_data.setText(self.node["title"])
                 drag.setMimeData(mime_data)
-                print(mime_data)
                 drag.exec_(Qt.MoveAction)
                 
         except Exception as e:
