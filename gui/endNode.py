@@ -2,12 +2,16 @@ from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout, QFrame
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QPushButton, QHBoxLayout
-
+from models.goal import MakeNode, set_deleted_true
 
 class EndNode(QWidget):
-    def __init__(self, node, parent=None):
-        super().__init__(parent)
-
+    def __init__(self, node, update_callback):
+        super().__init__()
+        self.node = node
+        self.update_callback = update_callback
+        self.setFocusPolicy(Qt.StrongFocus)  # 위젯이 포커스를 받을 수 있게 설정
+        self.setFocus() 
+        self.is_selected = False 
         # 노드 데이터에서 필요한 정보 추출
         title = node.get("title", "Untitled")
         start_time = node.get("start_time", "N/A")
@@ -41,6 +45,32 @@ class EndNode(QWidget):
         self.setFixedSize(200, 80)  # 크기를 최대한 줄임
         self.setLayout(layout)
 
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.is_selected = not self.is_selected
+            self.update_selection_style()
+            print(f"Node clicked: {self.node['title']} - Selected: {self.is_selected}")
+            event.accept()
+    
+    def update_selection_style(self):
+        # 클릭 상태에 따라 스타일을 변경
+        if self.is_selected:
+            self.setStyleSheet("background-color: yellow; border: 2px solid black;")
+        else:
+            self.setStyleSheet("background-color: #f0f0f0; border: 2px solid black;")
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Backspace:
+            if self.is_selected:
+                print(f"Deleting node: {self.node['title']} with ID: {self.node['_id']}")
+                set_deleted_true(self.node["_id"])
+                if self.update_callback:
+                    print("efe")
+                    self.update_callback()
+            else:
+                print("nope")
+        else:
+            super().keyPressEvent(event)
 
 
 if __name__ == "__main__":
@@ -58,14 +88,14 @@ if __name__ == "__main__":
 
     # 메인 윈도우 생성
     main_window = QWidget()
-    main_window.setWindowTitle("EndNode Test")
+    main_window.setWindowTitle("Test")
     main_window.resize(200, 80)
 
     # 레이아웃 생성
     layout = QVBoxLayout()
 
     # EndNode 추가
-    end_node = EndNode(node=node_data)
+    end_node = EndNode(node_data)
     layout.addWidget(end_node)
 
     # 레이아웃을 메인 윈도우에 설정
