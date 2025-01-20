@@ -71,6 +71,21 @@ class InteractiveNode(QGraphicsItemGroup):
             set_deleted_true(self.node["_id"])
             if self.update_callback:
                 self.update_callback()
+        elif event.key() == Qt.Key_Return:  # 엔터 키를 눌렀을 때
+            # + 버튼 클릭과 동일하게 자식 노드 추가
+            new_child_id = MakeNode(f"Child of {self.node['title']}", self.node["_id"])
+            self.node["children"].append(new_child_id)
+
+            new_title, ok = QInputDialog.getText(self.scene().views()[0], "자식 노드 제목 변경", "새 제목을 입력하세요:", text=f"Child of {self.node['title']}")
+        
+            if ok and new_title:
+                # 새 제목을 자식 노드에 적용
+                collection.update_one({"_id": new_child_id}, {"$set": {"title": new_title}})
+                if self.update_callback:
+                    self.update_callback()
+
+            if self.update_callback:
+                self.update_callback()
         else:
             super().keyPressEvent(event)
 

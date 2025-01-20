@@ -25,10 +25,10 @@ class TreeWidget(QWidget):
 
         # QGraphicsView 설정
         self.scene = QGraphicsScene()
-        self.scene.setSceneRect(0, 0, 3000, 3000)
+        self.scene.setSceneRect(-5000, -5000, 10000, 10000)
+        
         self.view = QGraphicsView(self.scene)
         self.view.setRenderHint(QPainter.Antialiasing)
-        # QGraphicsView에서 스크롤바 숨기기
         self.view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         
@@ -41,6 +41,7 @@ class TreeWidget(QWidget):
 
         # 트리 렌더링
         self.update_tree()
+        self.view.centerOn(700, 200)
 
     def update_tree(self):
         self.scene.clear()

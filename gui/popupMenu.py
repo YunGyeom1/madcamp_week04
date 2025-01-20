@@ -12,7 +12,6 @@ from PyQt5.QtCore import Qt
 from pymongo import MongoClient
 import os
 from db.db import get_collection
-from models.tags import sync_tags_with_goals
 collection = get_collection()
 
 class NodePopupMenu(QDialog):

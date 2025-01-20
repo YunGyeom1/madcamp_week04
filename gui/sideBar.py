@@ -40,12 +40,12 @@ def is_time_slot_available(date, start_time, end_time):
 class Sidebar(QTableWidget):
     def __init__(self, parent=None):
         super().__init__(0, 2, parent)  # 2열 테이블 초기화
-        self.date_range = 15  # 날짜 범위 초기화
+        self.date_range = 45  # 날짜 범위 초기화
         self.current_date = QDate.currentDate()  # 현재 날짜 초기화
 
         self._setup_ui()
         self.populate_table()
-        
+
     def update(self):
         """Sidebar 갱신 메서드"""
         self.populate_table() 
@@ -75,7 +75,6 @@ class Sidebar(QTableWidget):
 
         # MongoDB에서 데이터 가져오기
         nodes = list(collection.find())  # 실제 데이터를 가져옴
-        nodes.append({"title": "Example Node", "start_time": "10:00", "end_time": "11:00", "date": "2025-01-01"})
         # 날짜별로 그룹화
         grouped_data = {}
         for node in nodes:
@@ -101,7 +100,7 @@ class Sidebar(QTableWidget):
             if date in grouped_data:
                 for node in grouped_data[date]:
                     if "deleted" not in node.get("tag", []) or "deleted" in selected_tags:
-                        end_node = EndNode(node)
+                        end_node = EndNode(node, self.populate_table)
                         container_layout.addWidget(end_node)
 
             self.setCellWidget(row, 0, node_container)  # 첫 번째 열에 컨테이너 추가
@@ -113,18 +112,29 @@ class Sidebar(QTableWidget):
 
         self.resizeRowsToContents()  # 행 높이 자동 조
 
+        today_date_str = self.current_date.toString("yyyy-MM-dd")
+        today_row = self.find_row_by_date(today_date_str)
+        if today_row is not None:
+            today_item = self.item(today_row, 1)
+            if today_item:
+                self.scrollToItem(today_item)
+
     def load_more_dates(self, amount):
         """스크롤 시 더 많은 날짜를 로드"""
         self.date_range += amount
         self.populate_table()
 
-
     def eventFilter(self, source, event):
         if event.type() == QEvent.Wheel and source is self.verticalScrollBar():
+            # 스크롤이 하단에 가까우면 데이터를 더 로드
             if self.verticalScrollBar().value() == self.verticalScrollBar().maximum():
                 self.load_more_dates(30)  # 스크롤 시 30일 추가 로드
-        return super().eventFilter(source, event)
+            
+            # 스크롤이 상단에 가까우면 데이터를 더 로드
+            elif self.verticalScrollBar().value() == 0:
+                self.load_more_dates(30)  # 스크롤 시 30일 이전 날짜 추가 로드
 
+        return super().eventFilter(source, event)
 
     def dragEnterEvent(self, event):
         """드래그 항목이 들어왔을 때 호출."""
@@ -200,7 +210,7 @@ class Sidebar(QTableWidget):
             else:
                 container_layout = node_container.layout()
 
-            end_node = EndNode(new_node_data)
+            end_node = EndNode(new_node_data, self.populate_table)
             container_layout.addWidget(end_node)
             node_container.setLayout(container_layout)
             node_container.updateGeometry()
@@ -223,6 +233,7 @@ class Sidebar(QTableWidget):
             if date_item and date_item.text() == date:
                 return row
         return None
+
 
 class NodeWidget(QWidget):
     def __init__(self, title, description="", parent=None):
