@@ -16,9 +16,10 @@ GOAL_SCHEMA_TEMPLATE = {
     "title": "Untitled Node",
     "description": "",
     "isOpen": True,
-    "due_date": None,
+    "due_date": [None, None],
     "location": "",
     "tag": [],
+    "isLeaf": False,
 
     "height": 0,
     "width": 1,

@@ -8,22 +8,18 @@ goal_collection = get_collection("Test")
 TAG_SCHEMA_TEMPLATE = {
     "name": "",         # 태그 이름
     "selected": False,  # 선택 여부
-    "restricted": False # 금지 여부
 }
 
 def sync_tags_with_goals():
     # Goal 컬렉션에서 모든 태그 수집
     all_tags = goal_collection.distinct("tag")
 
-    if "deleted" not in all_tags:
-        all_tags.append("deleted")
     if "all" not in all_tags:
         all_tags.append("all")
 
     for tag in all_tags:
         # 태그가 이미 존재하면 무시, 없으면 추가
         if not tag_collection.find_one({"name": tag}):
-            restricted = (tag == "deleted")  # 'deleted' 태그는 기본적으로 restricted = True
             selected = (tag == "all")      # 'all' 태그는 기본적으로 selected = True
             tag_collection.insert_one({"name": tag, "selected": selected, "restricted": restricted})
 
