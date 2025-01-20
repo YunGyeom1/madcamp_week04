@@ -124,17 +124,6 @@ class Sidebar(QTableWidget):
         self.date_range += amount
         self.populate_table()
 
-    def eventFilter(self, source, event):
-        if event.type() == QEvent.Wheel and source is self.verticalScrollBar():
-            # 스크롤이 하단에 가까우면 데이터를 더 로드
-            if self.verticalScrollBar().value() == self.verticalScrollBar().maximum():
-                self.load_more_dates(30)  # 스크롤 시 30일 추가 로드
-            
-            # 스크롤이 상단에 가까우면 데이터를 더 로드
-            elif self.verticalScrollBar().value() == 0:
-                self.load_more_dates(30)  # 스크롤 시 30일 이전 날짜 추가 로드
-
-        return super().eventFilter(source, event)
 
     def dragEnterEvent(self, event):
         """드래그 항목이 들어왔을 때 호출."""

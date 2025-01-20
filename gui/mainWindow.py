@@ -23,6 +23,7 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(central_widget)  # 세로 레이아웃 사용 (필터와 트리를 세로로 배치)
         layout.setSpacing(0) 
         layout.setContentsMargins(0, 0, 0, 0) 
+
         # 태그 필터 생성 및 추가
         self.filter_widget = TagFilterWidget(self.update_tree)
         layout.addWidget(self.filter_widget)  # 필터를 위에 추가
@@ -89,7 +90,6 @@ def create_sample_tree():
 
     # 루트 노드 생성
     root_id = MakeNode("Root")
-    print_node_details(root_id)
 
     child1_id = MakeNode("C1", root_id)
     child2_id = MakeNode("C2", root_id)

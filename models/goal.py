@@ -75,8 +75,8 @@ def add_leaf(node_id, date=None):
     return leaf.inserted_id
 
 
-def update_height(node):
-    data = collection.find_one({"_id": node})
+def update_height(node_id):
+    data = collection.find_one({"_id": node_id})
     if data.get("start_time") or data.get("end_time"):
         return
    
@@ -85,7 +85,7 @@ def update_height(node):
     
     tag_collection = get_collection("Tags")
     selected_tags = [tag["name"] for tag in tag_collection.find({"selected": True})]
-    restricted_tags = [tag["name"] for tag in tag_collection.find({"restricted": True})]
+    restricted_tags = ["deleted"]
 
     
     for childid in data["children"]:
@@ -108,7 +108,7 @@ def update_height(node):
 
     # 데이터베이스에 업데이트
     collection.update_one(
-        {"_id": node},
+        {"_id": node_id},
         {"$set": {"height": height, "width": max(width, 1)}}
     )
 
@@ -171,3 +171,23 @@ def set_deleted_true(node_id):
     if "children" in node:
         for child_id in node["children"]:
             set_deleted_true(child_id)
+
+def update_parent_task(node_id):
+    node = collection.find_one({"_id": node_id})
+    if not node or not node["children"]:
+        return
+
+    task_sum = [0, 0, 0]
+
+    for child_id in node["children"]:
+        child = collection.find_one({"_id": child_id})
+        if not child:
+            continue
+        task_sum = [task_sum[i] + child["task"][i] for i in range(3)]
+
+    # 부모 노드 업데이트
+    collection.update_one({"_id": node_id}, {"$set": {"task": task_sum}})
+
+    # 상위 부모 노드도 재귀적으로 업데이트
+    if node["parent"]:
+        update_parent_task(node["parent"])

@@ -16,8 +16,7 @@ class TreeWidget(QWidget):
     def __init__(self, root_id):
         super().__init__()
         self.root_id = root_id
-        self.root = collection.find_one({"_id": root_id})
-
+        
         # 줌 및 패닝 상태 변수 초기화
         self.zoom_factor = 1.0
         self.is_panning = False
@@ -41,20 +40,22 @@ class TreeWidget(QWidget):
 
         # 트리 렌더링
         self.update_tree()
-        self.view.centerOn(700, 200)
+        self.view.centerOn(1000, 200)
 
     def update_tree(self):
         self.scene.clear()
-        root_x = 1000-self.root["height"]*200
+        root = collection.find_one({"_id": self.root_id})
+        root_x = 1000-root["height"]*200
         root_y = 100
-        self.place_node(self.root, root_x, root_y)
+        print("와우", root_x, root_y)
+        self.place_node(root, root_x, root_y)
 
         self.view.ensureVisible(root_x - 100, root_y - 100, 200, 200)
     
     def place_node(self, node, x, y):
         vnode = InteractiveNode(node, self.update_tree)
         vnode.setPos(x, y)
-        print(node["title"], node["width"], node["height"], x, y)
+        print(node["title"], node["width"], node["height"], x, y, node["tag"])
         self.scene.addItem(vnode)
 
          # 기본 세로 간격

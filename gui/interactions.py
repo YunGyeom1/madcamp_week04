@@ -65,7 +65,19 @@ class InteractiveNode(QGraphicsItemGroup):
         self.menu_text.setFont(QFont("Arial", 14, QFont.Bold))
         self.menu_text.setPos(150, 30)
         self.menu_text.setParentItem(self.menu_button)
+        # 시작 시간 표시
+        self.start_time_text = QGraphicsSimpleTextItem(self.node.get("start_time", "Not Set"))
+        self.start_time_text.setFont(QFont("Arial", 10))
+        self.start_time_text.setPos(40, 40)
+        self.addToGroup(self.start_time_text)
 
+        # 종료 시간 표시
+        self.end_time_text = QGraphicsSimpleTextItem(self.node.get("end_time", "Not Set"))
+        self.end_time_text.setFont(QFont("Arial", 10))
+        self.end_time_text.setPos(40, 60)
+        self.addToGroup(self.end_time_text)
+        self.popup_menu = None
+        
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Backspace:
             set_deleted_true(self.node["_id"])
@@ -101,7 +113,8 @@ class InteractiveNode(QGraphicsItemGroup):
                     self.update_callback()
             elif self.menu_button.contains(self.mapFromScene(event.scenePos())):
                 # ... 버튼 클릭: NodePopupMenu 표시
-                self.show_popup(event.scenePos())
+                popup = NodePopupMenu(node_id=self.node["_id"])
+                popup.show()
             else:
                 if not self.node.get("start_time"):
                     return
@@ -142,11 +155,16 @@ class InteractiveNode(QGraphicsItemGroup):
             new_pos = self.mapToScene(event.pos()) - self.mapToScene(event.buttonDownPos(Qt.LeftButton))
             self.setPos(self.original_pos + new_pos)
 
-    def show_popup(self, position):
-        """NodePopupMenu를 표시하는 함수"""
-        try:
-            popup = NodePopupMenu(node_id=self.node)
-            popup.exec_()
-            #popup.exec_(self.scene().views()[0].mapToGlobal(position.toPoint()))
-        except Exception as e:
-            print(f"Error in show_popup: {e}")
+    def show_popup(self):
+        """Pop-up 메뉴를 표시"""
+        # 기존 팝업이 있으면 닫기
+        if self.popup_menu:
+            self.popup_menu.close()
+        
+        # 새로운 팝업 메뉴 인스턴스 생성
+        self.popup_menu = NodePopupMenu(node_id=self.node_id)
+        
+        # 팝업 메뉴 상태 리셋
+        self.popup_menu.reset_node_state()  # 팝업의 상태를 리셋하는 메서드 호출
+
+        self.popup_menu.show()  # show()로 팝업 메뉴를 열기

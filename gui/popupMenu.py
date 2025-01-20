@@ -15,8 +15,8 @@ from db.db import get_collection
 collection = get_collection()
 
 class NodePopupMenu(QDialog):
-    def __init__(self, parent=None, node_id=None):
-        super().__init__(parent)
+    def __init__(self, node_id=None):
+        super().__init__()
         self.setWindowTitle("활동 세부 사항")
         self.resize(400, 600)  # 다이얼로그 크기 설정
 
@@ -34,7 +34,7 @@ class NodePopupMenu(QDialog):
         """)
 
         self.node_id=node_id
-
+        self.node_data = collection.find_one({"_id": node_id})
         layout = QVBoxLayout()
     
 
@@ -42,11 +42,13 @@ class NodePopupMenu(QDialog):
         layout.addWidget(QLabel("Description"))
         self.description_input = QLineEdit()
         self.description_input.setPlaceholderText("일정에 대한 설명입니다.")
+        self.description_input.setText(self.node_data.get("description", ""))  # 기본값 설정
         layout.addWidget(self.description_input)
 
         # Tag field
         layout.addWidget(QLabel("태그:"))
         self.tag_input = QLineEdit()
+        self.tag_input.setText(", ".join(map(str, self.node_data.get("tag", []))))  # 기본값 설정
         layout.addWidget(self.tag_input)
 
         # 달성 기간 설정 버튼
@@ -60,11 +62,14 @@ class NodePopupMenu(QDialog):
         time_layout = QVBoxLayout()
         self.start_time = QTimeEdit()
         self.start_time.setDisplayFormat("HH:mm")
-        self.start_time.setTime(QTime(QTime.currentTime().hour(), 0))  # 현재 시간에 분은 00
+        start_time_str = self.node_data.get("start_time", "00:00")
+        self.start_time.setTime(QTime.fromString(start_time_str, "HH:mm")) 
 
         self.end_time = QTimeEdit()
         self.end_time.setDisplayFormat("HH:mm")
+        end_time_str = self.node_data.get("end_time", "01:00")
         self.end_time.setTime(QTime(QTime.currentTime().hour() + 1, 0))  # 종료 시간은 기본적으로 1시간 후, 분은 00
+        self.end_time.setTime(QTime.fromString(end_time_str, "HH:mm"))
 
         time_layout.addWidget(self.start_time)
         time_layout.addWidget(self.end_time)
@@ -76,9 +81,11 @@ class NodePopupMenu(QDialog):
         repeat_layout = QHBoxLayout()
         self.repeat_count = QComboBox()
         self.repeat_count.addItems([str(i) for i in range(1, 11)])  # 1부터 10까지 숫자
+        self.repeat_count.setCurrentText(str(self.node_data.get("repeat", [1, 0])[0]))
 
         self.repeat_type = QComboBox()
         self.repeat_type.addItems(["반복 안함", "일", "주", "달"])  # 반복 주기
+        self.repeat_type.setCurrentIndex(self.node_data.get("repeat", [1, 0])[1])
 
         # "마다" 라벨 추가
         self.repeat_label = QLabel("마다")
@@ -89,11 +96,12 @@ class NodePopupMenu(QDialog):
         repeat_layout.addWidget(self.repeat_type)
         repeat_layout.addWidget(self.repeat_label)  # "마다" 추가
         layout.addLayout(repeat_layout)
-        self.repeat_type.currentIndexChanged.connect(self.update_repeat_label_visibility)
+        self.repeat_type.currentIndexChanged.connect(self.update_repeat_label_visibility) 
 
 
         # 숨기기 토글
-        self.hide_checkbox = QCheckBox("숨기기 토글")
+        self.hide_checkbox = QCheckBox("달성률 숨기기 토글")
+        self.hide_checkbox.setChecked(self.node_data.get("isOpen", False))
         layout.addWidget(self.hide_checkbox)
 
         self.save_button = QPushButton("저장")
@@ -102,6 +110,7 @@ class NodePopupMenu(QDialog):
         self.save_button.clicked.connect(lambda: self.save_node_changes(node_id))
 
         self.setLayout(layout)
+        
     def update_repeat_label_visibility(self):
         if self.repeat_type.currentText() == "반복 안함":
             self.repeat_label.hide()
