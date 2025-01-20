@@ -19,7 +19,7 @@ client = MongoClient(connection_string)
 db = client["W4_Calendar"]
 collection = db["Test"]
 class DateSidebar(QTableWidget):
-    def __init__(self, node, parent=None):
+    def __init__(self, parent=None):
         super().__init__(0, 2, parent)  # 2열 테이블
         self.setHorizontalHeaderLabels(["Content", "Date"])  # 헤더 설정
         self.setColumnWidth(0, 300)  # 첫 번째 열 너비

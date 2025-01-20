@@ -26,7 +26,7 @@ class NodePopupMenu(QMenu):
                 border-radius: 5px;
             }
             QMenu::item:selected {
-                background-color: #0078d4;
+                background-color: #007777;
                 color: white;
             }
         """)
