@@ -41,6 +41,33 @@ def authenticate_google_account():
     
     return creds
 
+
+def get_events_for_date(start_date, end_date):
+    """특정 날짜 범위의 사용자가 생성한 일정을 가져온다."""
+    try:
+        creds = authenticate_google_account()
+        service = build('calendar', 'v3', credentials=creds)
+
+        # QDate 객체를 ISO 8601 형식의 문자열로 변환
+        time_min = start_date.toString("yyyy-MM-ddT00:00:00Z")
+        time_max = end_date.toString("yyyy-MM-ddT23:59:59Z")
+
+        events_result = service.events().list(
+            calendarId='primary',
+            timeMin=time_min,
+            timeMax=time_max,
+            singleEvents=True,
+            orderBy='startTime'
+        ).execute()
+        events = events_result.get('items', [])
+
+        return events
+    except HttpError as error:
+        print(f"An error occurred: {error}")
+        return []
+
+
+
 def create_event(node_id):
     """node_id를 받아서 DB에서 가져와서 구글 캘린더에 등록"""
     try:
