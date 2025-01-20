@@ -28,10 +28,12 @@ class TreeWidget(QWidget):
         self.scene.setSceneRect(0, 0, 3000, 3000)
         self.view = QGraphicsView(self.scene)
         self.view.setRenderHint(QPainter.Antialiasing)
-        self.view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)  # 스크롤바 항상 표시
-        self.view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        # QGraphicsView에서 스크롤바 숨기기
+        self.view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.view)
 
         # 이벤트 필터 추가
@@ -59,7 +61,6 @@ class TreeWidget(QWidget):
             return # leaf 노드면 더 로닝 ㄴㄴ
 
         selected_tags = [tag["name"] for tag in tag_collection.find({"selected": True})]
-        restricted_tags = [tag["name"] for tag in tag_collection.find({"restricted": True})]
         
         dy = 100
         child_x = x
@@ -69,10 +70,11 @@ class TreeWidget(QWidget):
 
             if not any(tag in selected_tags for tag in child_node.get("tag", [])):
                 continue
-            restricted_in_child = [tag for tag in child_node.get("tag", []) if tag in restricted_tags]
-            if restricted_in_child:
-                if not all(tag in selected_tags for tag in restricted_in_child):
+             # "deleted" 태그가 있는 경우 selected 태그에 포함되어 있어야 렌더링
+            if "deleted" in child_node.get("tag", []):
+                if "deleted" not in selected_tags:
                     continue
+
             
             child_x = 1000 - child_node["height"] * 200
             if child_node and 'deleted' not in child_node["tag"]:
@@ -118,6 +120,11 @@ class TreeWidget(QWidget):
         else:
             # 줌 아웃
             self.zoom_factor /= 1.03
+        
+        min_zoom = 0.5
+        max_zoom = 7.0
+
+        self.zoom_factor = max(min_zoom, min(self.zoom_factor, max_zoom))
 
         # 트랜스폼 적용
         self.view.setTransform(QTransform().scale(self.zoom_factor, self.zoom_factor))
@@ -141,6 +148,7 @@ class TreeWidget(QWidget):
             self.last_mouse_position = event.pos()
             return True  # 이벤트 소모
 
+
         elif event.type() == QEvent.MouseMove and self.is_panning:
             delta = event.pos() - self.last_mouse_position
             self.last_mouse_position = event.pos()
@@ -149,7 +157,12 @@ class TreeWidget(QWidget):
                 # 트랜스폼 적용된 delta 계산
                 transform = self.view.transform()
                 scaled_delta = QPointF(delta.x() / transform.m11(), delta.y() / transform.m22())
-                # 스크롤바 이동 (정수 변환 추가)
+                
+                # 패닝 감도 낮추기 (예: 0.5로 감도 조정)
+                sensitivity = 0.5
+                scaled_delta *= sensitivity
+
+                # 스크롤바 이동
                 self.view.horizontalScrollBar().setValue(
                     int(self.view.horizontalScrollBar().value() - scaled_delta.x())
                 )
