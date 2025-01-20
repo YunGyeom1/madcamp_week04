@@ -108,6 +108,26 @@ class InteractiveNode(QGraphicsItemGroup):
         except Exception as e:
             print(f"Error in mousePressEvent: {e}")
 
+
+    def mouseDoubleClickEvent(self, event):
+        """노드를 더블 클릭하면 제목을 변경할 수 있게 한다."""
+        try:
+            # 제목 변경 대화상자 표시
+            new_title, ok = QInputDialog.getText(self.scene().views()[0], "노드 제목 변경", "새 제목을 입력하세요:", text=self.node["title"])
+
+            if ok and new_title:
+                self.node["title"] = new_title  # MongoDB 데이터 업데이트
+                self.title_text.setText(new_title)  # 화면에 표시된 제목 업데이트
+
+                # MongoDB 업데이트
+                collection.update_one({"_id": self.node["_id"]}, {"$set": {"title": new_title}})
+
+                if self.update_callback:
+                    self.update_callback()
+
+        except Exception as e:
+            print(f"Error in mouseDoubleClickEvent: {e}")
+
     def mouseMoveEvent(self, event):
         if hasattr(self, "isDragging") and self.isDragging:
             new_pos = self.mapToScene(event.pos()) - self.mapToScene(event.buttonDownPos(Qt.LeftButton))
@@ -115,7 +135,8 @@ class InteractiveNode(QGraphicsItemGroup):
     def show_popup(self, position):
         """NodePopupMenu를 표시하는 함수"""
         try:
-            popup = NodePopupMenu()
-            popup.exec_(self.scene().views()[0].mapToGlobal(position.toPoint()))
+            popup = NodePopupMenu(node_id=self.node)
+            popup.exec_()
+            #popup.exec_(self.scene().views()[0].mapToGlobal(position.toPoint()))
         except Exception as e:
             print(f"Error in show_popup: {e}")
