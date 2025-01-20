@@ -160,6 +160,7 @@ class NodePopupMenu(QMenu):
         action = QWidgetAction(self)
         action.setDefaultWidget(widget)
         self.addAction(action)
+
 class DateRangeDialog(QDialog):
     """캘린더를 이용하여 날짜 범위를 설정하는 다이얼로그."""
     def __init__(self, parent=None):

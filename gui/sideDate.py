@@ -96,51 +96,59 @@ class DateSidebar(QTableWidget):
         else:
             event.ignore()
 
-
     def dropEvent(self, event):
         if event.mimeData().hasFormat("application/x-node-id"):
-            node_id = event.mimeData().data("application/x-node-id").data().decode("utf-8")
+            node_id = ObjectId(event.mimeData().data("application/x-node-id").data().decode("utf-8"))
             node_title = event.mimeData().text()
             event.acceptProposedAction()
             
             # 드롭 위치 파악
             data = collection.find_one({"_id": node_id})
-        if not data:
-            print(f"No data found for node ID: {node_id}")
-            return
+            if not data:
+                print(f"No data found for node ID: {node_id}")
+                return
 
-        # MongoDB에서 시작 시간과 끝 시간 가져오기
-        start_time = data.get("start_time", "09:00")  # 기본값 09:00
-        end_time = data.get("end_time", "10:00")  # 기본값 10:00
-        
-        # 드롭 위치 파악
-        drop_pos = event.pos()
-        target_item = self.itemAt(drop_pos)
-        if target_item is not None:
-            row = target_item.row()
+            start_time = data.get("start_time", "09:00")
+            end_time = data.get("end_time", "10:00")
             
-            # 새로운 노드 생성
-            new_leaf_id = add_leaf(node_id)  # MongoDB에 새 leaf 노드 추가
-            print(f"New leaf created with ID: {new_leaf_id}")
+            # 드롭 위치 파악
+            drop_pos = event.pos()
+            target_item = self.itemAt(drop_pos)
+            if target_item is not None:
+                row = target_item.row()
+                
+                # 새로운 노드 생성
+                new_leaf_id = add_leaf(node_id)  # MongoDB에 새 leaf 노드 추가
+                print(f"New leaf created with ID: {new_leaf_id}")
 
-            # 사용자 정의 텍스트 추가
-            additional_text = f"\n{start_time}~{end_time}: {node_title}"
+                # 사용자 정의 텍스트 추가
+                additional_text = f"\n{start_time}~{end_time}: {node_title}"
 
-            # 기존 텍스트 가져오기
-            current_item = self.item(row, 0)  # 첫 번째 열의 항목
-            if current_item is not None:
-                current_text = current_item.text()
+                # 기존 텍스트 가져오기
+                current_item = self.item(row, 0)  # 첫 번째 열의 항목
+                if current_item is not None:
+                    current_text = current_item.text()
+                else:
+                    current_text = ""
+                text_list = current_text.split("\n") if current_text else []
+                text_list.append(additional_text)
+                def extract_start_time(text):
+                    try:
+                        return text.split("~")[0]  # 시작 시간 추출
+                    except IndexError:
+                        return ""
+                sorted_text_list = sorted(text_list, key=extract_start_time, reverse = True)
+
+                # 텍스트 업데이트
+                updated_content = "\n".join(sorted_text_list)
+                new_item = QTableWidgetItem(updated_content.strip())
+                new_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+                self.setItem(row, 0, new_item)
+
+                self.resizeRowsToContents()
+                print(f"Updated cell at row {row} with text: {updated_content}")
             else:
-                current_text = ""
-
-            # 텍스트 업데이트
-            updated_content = current_text + additional_text
-            new_item = QTableWidgetItem(updated_content)
-            new_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-            self.setItem(row, 0, new_item)
-            print(f"Updated cell at row {row} with text: {updated_content}")
-        # else:
-        #     print("드롭 위치에 해당하는 셀이 없습니다.")
+                print("드롭 위치에 해당하는 셀이 없습니다.")
         else:
             print("Invalid MIME data in dropEvent")
             event.ignore()
