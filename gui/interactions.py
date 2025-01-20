@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QColor, QBrush, QPen, QFont, QDrag
 from PyQt5.QtCore import Qt, QRectF, QPointF, QMimeData
 from models.goal import MakeNode
-from gui.popupMenu import NodePopupMenu, DateRangeDialog
+from gui.popupMenu import NodePopupMenu
 from db.db import get_collection
 
 collection = get_collection()
