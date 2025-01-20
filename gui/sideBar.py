@@ -6,6 +6,7 @@ from PyQt5.QtCore import Qt, QDate, QEvent
 from PyQt5.QtWidgets import (
     QApplication, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget, QAbstractScrollArea, QMainWindow, QLabel
 )
+from PyQt5.QtWidgets import QPushButton, QHBoxLayout
 from PyQt5.QtWidgets import QVBoxLayout
 from pymongo import MongoClient
 from bson.objectid import ObjectId
@@ -18,15 +19,20 @@ connection_string = os.getenv("MONGODB_URI")
 client = MongoClient(connection_string)
 db = client["W4_Calendar"]
 collection = db["Test"]
+tag_collection = db["Tags"]
 
 class Sidebar(QTableWidget):
     def __init__(self, parent=None):
         super().__init__(0, 2, parent)  # 2열 테이블 초기화
-        self.date_range = 30  # 날짜 범위 초기화
+        self.date_range = 15  # 날짜 범위 초기화
         self.current_date = QDate.currentDate()  # 현재 날짜 초기화
 
         self._setup_ui()
         self.populate_table()
+        
+    def update(self):
+        """Sidebar 갱신 메서드"""
+        self.populate_table() 
 
     def _setup_ui(self):
         """UI 초기 설정"""
@@ -74,11 +80,13 @@ class Sidebar(QTableWidget):
             container_layout = QVBoxLayout(node_container)
             container_layout.setContentsMargins(5, 5, 5, 5)
             container_layout.setSpacing(5)
-
+            selected_tags = [tag["name"] for tag in tag_collection.find({"selected": True})]
+            
             if date in grouped_data:
                 for node in grouped_data[date]:
-                    end_node = EndNode(node)
-                    container_layout.addWidget(end_node)
+                    if "deleted" not in node.get("tag", []) or "deleted" in selected_tags:
+                        end_node = EndNode(node)
+                        container_layout.addWidget(end_node)
 
             self.setCellWidget(row, 0, node_container)  # 첫 번째 열에 컨테이너 추가
 
@@ -124,6 +132,7 @@ class Sidebar(QTableWidget):
             date_item = self.item(row, 1)
             if not date_item:
                 print("No date associated with the drop position.")
+                return
             drop_date = date_item.text()
             
             # MongoDB에서 노드 데이터 확인

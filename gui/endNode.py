@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout, QFrame
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QPushButton, QHBoxLayout
 
 
 class EndNode(QWidget):
@@ -39,6 +40,7 @@ class EndNode(QWidget):
         # 크기 조정
         self.setFixedSize(200, 80)  # 크기를 최대한 줄임
         self.setLayout(layout)
+
 
 
 if __name__ == "__main__":

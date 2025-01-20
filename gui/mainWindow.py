@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QApplication, QGraphicsScene, QGraphicsView, QMainWindow, QVBoxLayout, QWidget, QHBoxLayout
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QRectF
 from PyQt5.QtGui import QPainter
 from bson.objectid import ObjectId
 from dotenv import load_dotenv
@@ -12,7 +12,6 @@ from models.goal import MakeNode, collection, set_time
 from gui.showTree import TreeWidget
 from gui.sideBar import Sidebar  # Sidebar를 가져옴
 from gui.filter import TagFilterWidget
-from models.tags import load_tags
 
 class MainWindow(QMainWindow):
     def __init__(self, root):
@@ -22,14 +21,16 @@ class MainWindow(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         layout = QVBoxLayout(central_widget)  # 세로 레이아웃 사용 (필터와 트리를 세로로 배치)
-
+        layout.setSpacing(0) 
+        layout.setContentsMargins(0, 0, 0, 0) 
         # 태그 필터 생성 및 추가
-        self.tags = load_tags()
-        self.filter_widget = TagFilterWidget(self.tags, self.update_tree)
+        self.filter_widget = TagFilterWidget(self.update_tree)
         layout.addWidget(self.filter_widget)  # 필터를 위에 추가
 
         # 수평 레이아웃: Tree와 Sidebar 배치
         main_layout = QHBoxLayout()
+        main_layout.setSpacing(0)
+        main_layout.setContentsMargins(0, 0, 0, 0)
         layout.addLayout(main_layout)  # 수평 레이아웃을 세로 레이아웃에 추가
 
         # QGraphicsScene 및 QGraphicsView 설정
@@ -37,10 +38,13 @@ class MainWindow(QMainWindow):
         self.view = QGraphicsView(self.scene)
         self.view.setRenderHint(QPainter.Antialiasing)
 
+        self.view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
         # 트리 위젯 생성
         self.tree_widget = TreeWidget(root)
-        self.tree_widget.setGeometry(0, 0, 750, 600)  # 초기 크기 설정
         self.scene.addWidget(self.tree_widget)  # 트리 위젯 추가
+        self.scene.setSceneRect(QRectF(self.view.rect()))
 
         # QGraphicsView를 레이아웃에 추가
         main_layout.addWidget(self.view, stretch=4)
@@ -69,7 +73,9 @@ class MainWindow(QMainWindow):
         # TreeWidget의 크기를 QGraphicsView에 맞게 조정
         if self.tree_widget:
             self.tree_widget.setGeometry(0, 0, self.view.width(), self.view.height())
-        self.filter_widget.setFixedHeight(self.filter_widget.sizeHint().height())
+        self.scene.setSceneRect(QRectF(self.view.rect()))  # 뷰의 크기에 맞춰 씬 크기 설정
+        self.filter_widget.setFixedHeight(60)
+        self.filter_widget.setFixedHeight(60)
 
             
 def create_sample_tree():

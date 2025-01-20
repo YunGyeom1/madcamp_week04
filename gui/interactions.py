@@ -6,7 +6,8 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QColor, QBrush, QPen, QFont, QDrag
 from PyQt5.QtCore import Qt, QRectF, QPointF, QMimeData
-from models.goal import MakeNode
+
+from models.goal import MakeNode, set_deleted_true
 from gui.popupMenu import NodePopupMenu
 from db.db import get_collection
 
@@ -67,14 +68,7 @@ class InteractiveNode(QGraphicsItemGroup):
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Backspace:
-            # deleted 태그 추가
-            if "deleted" not in self.node["tag"]:
-                self.node["tag"].append("deleted")
-
-            # MongoDB 업데이트 (필요 시)
-            collection.update_one({"_id": self.node["_id"]}, {"$addToSet": {"tag": "deleted"}})
-            
-            # 트리 리랜더링
+            set_deleted_true(self.node["_id"])
             if self.update_callback:
                 self.update_callback()
         else:
@@ -132,6 +126,7 @@ class InteractiveNode(QGraphicsItemGroup):
         if hasattr(self, "isDragging") and self.isDragging:
             new_pos = self.mapToScene(event.pos()) - self.mapToScene(event.buttonDownPos(Qt.LeftButton))
             self.setPos(self.original_pos + new_pos)
+
     def show_popup(self, position):
         """NodePopupMenu를 표시하는 함수"""
         try:

@@ -5,7 +5,6 @@ from dotenv import load_dotenv
 import configparser
 import copy
 from db.db import get_collection
-from models.tags import sync_tags_with_goals
 collection = get_collection()
 
 
@@ -15,7 +14,6 @@ GOAL_SCHEMA_TEMPLATE = {
     
     "title": "Untitled Node",
     "description": "",
-    "isOpen": True,
     "due_date": [None, None],
     "location": "",
     "tag": [],
@@ -45,7 +43,6 @@ def MakeNode(title="Untitled Node", parent=None, description=""):
     if parent:
         collection.update_one({"_id": parent}, {"$push": {"children": result.inserted_id}})
         update_height(parent)
-    sync_tags_with_goals()
     return result.inserted_id
 
 def set_time(node_id, start_time=None, end_time=None):
@@ -145,8 +142,32 @@ def update_tags(node_id, add_tags=[], remove_tags=[]):
         {"$set": {"tag": list(updated_tags)}}
     )
 
-    # 태그 컬렉션 동기화
-    sync_tags_with_goals()
 
     print(f"Updated tags for node {node_id}: {list(updated_tags)}")
     return list(updated_tags)
+
+def set_deleted_true(node_id):
+    """
+    주어진 노드와 그 자식 노드들에 'deleted' 태그를 추가합니다.
+    """
+    # 해당 노드 찾기
+    node = collection.find_one({"_id": node_id})
+    if not node:
+        raise ValueError(f"Node with ID {node_id} does not exist.")
+    
+    # 현재 태그에 'deleted' 추가
+    updated_tags = set(node.get("tag", []))
+    updated_tags.add("deleted")
+
+    # 노드 업데이트
+    collection.update_one(
+        {"_id": node_id},
+        {"$set": {"tag": list(updated_tags)}}
+    )
+    
+    print(f"Added 'deleted' tag to node {node_id}.")
+
+    # 자식 노드들에 대해서도 재귀적으로 'deleted' 태그 추가
+    if "children" in node:
+        for child_id in node["children"]:
+            set_deleted_true(child_id)
