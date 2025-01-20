@@ -2,7 +2,7 @@
 import sys
 import os
 from dotenv import load_dotenv
-from PyQt5.QtCore import Qt, QDate, QEvent
+from PyQt5.QtCore import Qt, QDate, QEvent, QDateTime
 from PyQt5.QtWidgets import (
     QApplication, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget, QAbstractScrollArea, QMainWindow, QLabel
 )
@@ -12,6 +12,7 @@ from pymongo import MongoClient
 from bson.objectid import ObjectId
 from gui.endNode import EndNode
 from models.goal import add_leaf
+from api.google_calendar_service import get_events_for_date
 
 # MongoDB 설정
 load_dotenv()
@@ -70,9 +71,11 @@ class Sidebar(QTableWidget):
         # 날짜 범위 계산 (-30일 ~ +30일)
         all_dates = [
             self.current_date.addDays(i).toString("yyyy-MM-dd")
-            for i in range(-self.date_range, self.date_range + 1)
+            for i in range(-35, 365)
         ]
-
+        qdate_list = [self.current_date.addDays(i) for i in range(-self.date_range, self.date_range + 1)]
+        
+        
         # MongoDB에서 데이터 가져오기
         nodes = list(collection.find())  # 실제 데이터를 가져옴
         # 날짜별로 그룹화
@@ -84,6 +87,18 @@ class Sidebar(QTableWidget):
             if date not in grouped_data:
                 grouped_data[date] = []
             grouped_data[date].append(node)
+
+        # google_calendar_service.py에서 특정 날짜 범위의 일정들을 가져옴
+        google_events = get_events_for_date(min(qdate_list), max(qdate_list))
+        google_grouped_data = {}
+        for event in google_events:
+            start_date = event.get('start', {}).get('dateTime', event.get('start', {}).get('date'))
+            if start_date:
+                start_date = QDate.fromString(start_date[:10], "yyyy-MM-dd").toString("yyyy-MM-dd")
+                if start_date not in google_grouped_data:
+                    google_grouped_data[start_date] = []
+                google_grouped_data[start_date].append(event)
+        
 
         # 테이블에 날짜 및 데이터 추가
         for date in all_dates:
@@ -97,11 +112,30 @@ class Sidebar(QTableWidget):
             container_layout.setSpacing(5)
             selected_tags = [tag["name"] for tag in tag_collection.find({"selected": True})]
             
+            # MongoDB 일정 추가
             if date in grouped_data:
                 for node in grouped_data[date]:
                     if "deleted" not in node.get("tag", []) or "deleted" in selected_tags:
                         end_node = EndNode(node, self.populate_table)
                         container_layout.addWidget(end_node)
+
+            # Google Calendar 이벤트 추가
+            if date in google_grouped_data:
+                for event in google_grouped_data[date]:
+                    event_title = event.get("summary", "Untitled Event")
+                    google_node = NodeWidget(event_title)  # Custom widget to display Google event
+                    container_layout.addWidget(google_node)
+
+                    # 시간 정보 가져오기
+                    start_time = event.get('start', {}).get('dateTime')  # 'dateTime' 형식이 있을 때만
+                    end_time = event.get('end', {}).get('dateTime')
+                    if start_time:
+                        start_time = QDateTime.fromString(start_time, Qt.ISODate).toString("HH:mm")
+                        end_time = QDateTime.fromString(end_time, Qt.ISODate).toString("HH:mm")
+                        event_title += f" ({start_time} - {end_time})"
+        
+                    google_node = NodeWidget(event_title)  # Custom widget to display Google event
+                    container_layout.addWidget(google_node)
 
             self.setCellWidget(row, 0, node_container)  # 첫 번째 열에 컨테이너 추가
 
@@ -124,17 +158,6 @@ class Sidebar(QTableWidget):
         self.date_range += amount
         self.populate_table()
 
-    def eventFilter(self, source, event):
-        if event.type() == QEvent.Wheel and source is self.verticalScrollBar():
-            # 스크롤이 하단에 가까우면 데이터를 더 로드
-            if self.verticalScrollBar().value() == self.verticalScrollBar().maximum():
-                self.load_more_dates(30)  # 스크롤 시 30일 추가 로드
-            
-            # 스크롤이 상단에 가까우면 데이터를 더 로드
-            elif self.verticalScrollBar().value() == 0:
-                self.load_more_dates(30)  # 스크롤 시 30일 이전 날짜 추가 로드
-
-        return super().eventFilter(source, event)
 
     def dragEnterEvent(self, event):
         """드래그 항목이 들어왔을 때 호출."""
@@ -144,8 +167,6 @@ class Sidebar(QTableWidget):
             event.ignore()
 
     
-
-
     def dropEvent(self, event):
         if event.mimeData().hasFormat("application/x-node-id"):
             node_id = ObjectId(event.mimeData().data("application/x-node-id").data().decode("utf-8"))
