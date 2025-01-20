@@ -21,6 +21,22 @@ db = client["W4_Calendar"]
 collection = db["Test"]
 tag_collection = db["Tags"]
 
+def is_time_slot_available(date, start_time, end_time):
+        """주어진 날짜에 시간대가 겹치는 노드가 있는지 확인."""
+        # 같은 날짜의 노드 검색
+        nodes_on_date = collection.find({"date": date})
+
+        for node in nodes_on_date:
+            existing_start = node.get("start_time")
+            existing_end = node.get("end_time")
+        
+            # 시간 겹침 확인
+            if existing_start and existing_end:
+                if not (end_time <= existing_start or start_time >= existing_end):
+                    # 시간이 겹치면 False 반환
+                    return False
+        return True
+
 class Sidebar(QTableWidget):
     def __init__(self, parent=None):
         super().__init__(0, 2, parent)  # 2열 테이블 초기화
@@ -117,6 +133,9 @@ class Sidebar(QTableWidget):
         else:
             event.ignore()
 
+    
+
+
     def dropEvent(self, event):
         if event.mimeData().hasFormat("application/x-node-id"):
             node_id = ObjectId(event.mimeData().data("application/x-node-id").data().decode("utf-8"))
@@ -139,6 +158,15 @@ class Sidebar(QTableWidget):
             data = collection.find_one({"_id": node_id})
             if not data:
                 print(f"No data found for node ID: {node_id}")
+                return
+            
+            # 드래그한 노드의 시작 시간과 종료 시간 가져오기
+            new_start_time = data.get("start_time")  # 노드의 시작 시간
+            new_end_time = data.get("end_time")      # 노드의 종료 시간
+
+            # 시간대 겹침을 검사
+            if not is_time_slot_available(drop_date, new_start_time, new_end_time):
+                print(f"Cannot add node on {drop_date}: time slot is already occupied.")
                 return
             
             # 새로운 노드 생성
