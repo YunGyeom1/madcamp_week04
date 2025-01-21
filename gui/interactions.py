@@ -100,8 +100,25 @@ class InteractiveNode(QGraphicsItemGroup):
                 self.update_callback()
         else:
             super().keyPressEvent(event)
+    def reset_popup_menu(self):
+        self.popup_menu = None
+        self.set_active(False)
+        self.scene().clearSelection()  # 선택 상태 초기화
+
+    def set_active(self, active):
+        self.selected = active
 
     def mousePressEvent(self, event):
+        self.scene().clearSelection()  # 선택 상태 초기화
+        self.setSelected(True)
+        print(f"Mouse pressed on node: {self.node['_id']}, Popup active: {self.popup_menu is not None}")
+        event.accept()
+        super().mousePressEvent(event)
+        if self.popup_menu:
+            print("Closing popup menu...")
+            self.popup_menu.close()
+            self.popup_menu = None
+    
         try:
             if self.plus_button.contains(self.mapFromScene(event.scenePos())):
                 # + 버튼 클릭: 새 자식 노드 추가
@@ -112,12 +129,22 @@ class InteractiveNode(QGraphicsItemGroup):
                 if self.update_callback:
                     self.update_callback()
             elif self.menu_button.contains(self.mapFromScene(event.scenePos())):
-                # ... 버튼 클릭: NodePopupMenu 표시
-                popup = NodePopupMenu(node_id=self.node["_id"])
-                popup.show()
+                # ... 버튼 클릭: 기존 팝업 닫기
+                if self.popup_menu:
+                    self.popup_menu.close()  # 기존 팝업 닫기
+                    self.popup_menu = None   # 참조 제거
+
+
+            
+                # 새로운 팝업 메뉴 표시
+                self.popup_menu = NodePopupMenu(node_id=self.node["_id"])
+                self.popup_menu.popup_closed.connect(self.reset_popup_menu)
+                self.popup_menu.show()
+                self.popup_menu.exec_()
+                self.set_active(True)
             else:
-                if not self.node.get("start_time"):
-                    return
+                # if not self.node.get("start_time"):
+                #     return
                 # 기본 드래그 시작
                 view = self.scene().views()[0]  # 첫 번째 뷰 가져오기
                 drag = QDrag(view)
@@ -146,6 +173,7 @@ class InteractiveNode(QGraphicsItemGroup):
 
                 if self.update_callback:
                     self.update_callback()
+
 
         except Exception as e:
             print(f"Error in mouseDoubleClickEvent: {e}")
