@@ -59,7 +59,7 @@ class TreeWidget(QWidget):
         self.scene.addItem(vnode)
 
          # 기본 세로 간격
-        if node["start_time"] or node["end_time"]: 
+        if node["date"] : 
             return # leaf 노드면 더 로닝 ㄴㄴ
 
         selected_tags = [tag["name"] for tag in tag_collection.find({"selected": True})]
