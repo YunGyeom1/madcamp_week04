@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (
     QGraphicsItem, QListWidget
 )
 from PyQt5.QtGui import QColor, QBrush, QPen, QFont, QDrag
-from PyQt5.QtCore import Qt, QRectF, QPointF, QMimeData
+from PyQt5.QtCore import Qt, QRectF, QPointF, QMimeData, QEventLoop
 
 from models.goal import MakeNode, set_deleted_true
 from gui.popupMenu import NodePopupMenu
@@ -17,6 +17,7 @@ class InteractiveNode(QGraphicsItemGroup):
     def __init__(self, node, update_callback):
         super().__init__()
         self.node = node  # MongoDB 데이터
+        self.node_id = node["_id"]
         self.update_callback = update_callback
         self.setAcceptedMouseButtons(Qt.LeftButton | Qt.RightButton)
         self.setFlags(QGraphicsItem.ItemIsMovable | QGraphicsItem.ItemIsSelectable)
@@ -128,6 +129,7 @@ class InteractiveNode(QGraphicsItemGroup):
 
                 if self.update_callback:
                     self.update_callback()
+
             elif self.menu_button.contains(self.mapFromScene(event.scenePos())):
                 # ... 버튼 클릭: 기존 팝업 닫기
                 if self.popup_menu:
@@ -145,6 +147,7 @@ class InteractiveNode(QGraphicsItemGroup):
             else:
                 # if not self.node.get("start_time"):
                 #     return
+
                 # 기본 드래그 시작
                 view = self.scene().views()[0]  # 첫 번째 뷰 가져오기
                 drag = QDrag(view)
@@ -192,7 +195,5 @@ class InteractiveNode(QGraphicsItemGroup):
         # 새로운 팝업 메뉴 인스턴스 생성
         self.popup_menu = NodePopupMenu(node_id=self.node_id)
         
-        # 팝업 메뉴 상태 리셋
-        self.popup_menu.reset_node_state()  # 팝업의 상태를 리셋하는 메서드 호출
 
         self.popup_menu.show()  # show()로 팝업 메뉴를 열기

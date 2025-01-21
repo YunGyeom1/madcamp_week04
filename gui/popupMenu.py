@@ -173,6 +173,7 @@ class NodePopupMenu(QDialog):
         end_time = self.end_time.time().toString("HH:mm")
         hide_toggle = self.hide_checkbox.isChecked()
         tag = self.tag_input.text()
+        tag = list(map(str.strip, tag.split(","))) if tag else []
 
         repeat_count = int(self.repeat_count.currentText())
         repeat_type_mapping = {"반복 안함": 0, "일": 1, "주": 2, "달": 3}

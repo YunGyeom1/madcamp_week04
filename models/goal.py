@@ -77,7 +77,7 @@ def add_leaf(node_id, date=None):
 
 def update_height(node_id):
     data = collection.find_one({"_id": node_id})
-    if data.get("start_time") or data.get("end_time"):
+    if data.get("date"):
         return
    
     height = 1
@@ -191,3 +191,50 @@ def update_parent_task(node_id):
     # 상위 부모 노드도 재귀적으로 업데이트
     if node["parent"]:
         update_parent_task(node["parent"])
+
+
+def duplicate_node(parent_node_id, obj_node_id):
+    tag_collection = get_collection("Tags")
+
+    # 선택된 태그 가져오기
+    selected_tags = [tag["name"] for tag in tag_collection.find({"selected": True})]
+
+    def copy_subtree(src_node_id, new_parent_id):
+        """재귀적으로 하위 트리를 복사하는 함수"""
+        src_node = collection.find_one({"_id": src_node_id})
+        if not src_node:
+            return None
+
+        # 태그 필터링: 선택된 태그에 포함되지 않으면 복사하지 않음
+        if not any(tag in selected_tags for tag in src_node.get("tag", [])):
+            return None
+
+        # "deleted" 태그가 있는 경우 selected 태그에 포함되어 있어야 복사
+        if "deleted" in src_node["tag"] and "deleted" not in selected_tags:
+            return None
+
+        # 새 노드 생성 (불필요한 필드 제거)
+        new_node_data = copy.deepcopy(src_node)
+        new_node_data.pop('_id')
+        new_node_data["parent"] = new_parent_id  # 부모 ID 업데이트
+        new_node_data["children"] = []  # 새 노드의 자식 목록 초기화
+
+        new_node_id = collection.insert_one(new_node_data).inserted_id
+
+        # 부모 노드의 children 리스트에 추가
+        collection.update_one({"_id": new_parent_id}, {"$push": {"children": new_node_id}})
+
+        # 자식 노드 복사
+        for child_id in src_node.get("children", []):
+            copy_subtree(child_id, new_node_id)
+
+        return new_node_id
+
+    # 최상위 노드(obj_node_id)를 parent_node_id 아래로 복사
+    copied_root_id = copy_subtree(obj_node_id, parent_node_id)
+
+    # 부모 노드의 높이 갱신
+    if copied_root_id:
+        update_height(parent_node_id)
+    
+    return copied_root_id
