@@ -11,6 +11,7 @@ goal_collection = get_collection("Test")
 class TagFilterWidget(QWidget):
     def __init__(self, update_callback = None):
         super().__init__()
+
         self.update_callback = update_callback
         self.tags = list(tag_collection.find())
         self.tags.sort(key=lambda tag: (tag["name"] != "all", tag["name"] == "deleted"))
@@ -19,6 +20,7 @@ class TagFilterWidget(QWidget):
 
     def init_ui(self):
         # 메인 레이아웃 설정
+        self.setStyleSheet("background-color: #F5F5F5;")
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(main_layout)

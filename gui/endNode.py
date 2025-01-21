@@ -1,9 +1,10 @@
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout, QFrame
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QPushButton, QHBoxLayout
+from PyQt5.QtWidgets import QPushButton, QHBoxLayout, QInputDialog, QDialog, QVBoxLayout, QFormLayout, QLineEdit, QDialogButtonBox, QSizePolicy
 from models.goal import MakeNode, set_deleted_true
 from db.db import get_collection
+from gui.colors import StyleColors
 
 tag_collection = get_collection("Tags")
 collection = get_collection()
@@ -23,10 +24,9 @@ class EndNode(QWidget):
 
         # 외곽 프레임 생성
         self.frame = QFrame(self)
-        self.frame.setStyleSheet("""
-            background-color: #f0f0f0;  /* 연한 회색 배경 */
-            border: 2px solid black;    /* 검은 테두리 */
-            border-radius: 5px;         /* 약간 둥근 모서리 */
+        self.frame.setStyleSheet(f"""
+            background-color: {StyleColors.LIGHT_RED};  /* 커스텀 색깔 */
+            border-radius: 8px;         /* 약간 둥근 모서리 */
         """)
         frame_layout = QVBoxLayout(self.frame)
 
@@ -45,7 +45,9 @@ class EndNode(QWidget):
         layout.addWidget(self.frame)
         layout.setContentsMargins(0, 0, 0, 0)
         # 크기 조정
-        self.setFixedSize(200, 80)  # 크기를 최대한 줄임
+        #self.setFixedSize(200, 80)  # 크기를 최대한 줄임
+        self.frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)  # 가로로 확장, 세로는 고정
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)  
         self.setLayout(layout)
 
     def mousePressEvent(self, event):
@@ -54,6 +56,61 @@ class EndNode(QWidget):
             print(f"Node clicked: {self.node['title']} - Selected: {self.is_selected}")
             event.accept()
     
+
+    def mouseDoubleClickEvent(self, event):
+        """더블 클릭하면 시작 시간과 종료 시간을 수정할 수 있게 한다."""
+        try:
+            start_time = self.node.get("start_time", "N/A")
+            end_time = self.node.get("end_time", "N/A")
+            # 시작 시간과 종료 시간을 수정할 수 있는 입력 창
+            dialog = QDialog(self)
+            dialog.setWindowTitle("시간 수정")
+        
+            # 레이아웃 설정
+            layout = QVBoxLayout(dialog)
+            form_layout = QFormLayout()
+
+            # 시작 시간 입력
+            self.start_time_edit = QLineEdit(dialog)
+            self.start_time_edit.setText(start_time)
+            form_layout.addRow("시작 시간 (HH:MM):", self.start_time_edit)
+
+            # 종료 시간 입력
+            self.end_time_edit = QLineEdit(dialog)
+            self.end_time_edit.setText(end_time)
+            form_layout.addRow("종료 시간 (HH:MM):", self.end_time_edit)
+
+            layout.addLayout(form_layout)
+
+            # 버튼 설정
+            button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, dialog)
+            layout.addWidget(button_box)
+            button_box.accepted.connect(dialog.accept)
+            button_box.rejected.connect(dialog.reject)
+
+            # 다이얼로그 실행
+            if dialog.exec_() == QDialog.Accepted:
+                # 사용자가 OK 버튼을 클릭하면 입력된 시간 가져오기
+                new_start_time = self.start_time_edit.text()
+                new_end_time = self.end_time_edit.text()
+
+                # 시작 시간과 종료 시간을 업데이트
+                if new_start_time:
+                    self.node["start_time"] = new_start_time
+                    collection.update_one({"_id": self.node["_id"]}, {"$set": {"start_time": new_start_time}})
+
+                if new_end_time:
+                    self.node["end_time"] = new_end_time
+                    collection.update_one({"_id": self.node["_id"]}, {"$set": {"end_time": new_end_time}})
+
+                # UI 업데이트
+                if self.update_callback:
+                    self.update_callback()
+        
+        except Exception as e:
+            print(f"Error updating times: {e}")
+
+
     def update_selection_style(self):
         # task 상태에 따라 스타일을 설정합니다.
         if self.node["task"] == [1, 0, 0]:  # 흰색

@@ -1,10 +1,12 @@
 # sidebar.py
 import sys
+import re
 import os
 from dotenv import load_dotenv
 from PyQt5.QtCore import Qt, QDate, QEvent, QDateTime
 from PyQt5.QtWidgets import (
-    QApplication, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget, QAbstractScrollArea, QMainWindow, QLabel
+    QApplication, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget, QAbstractScrollArea, QMainWindow, QLabel,
+    QDialog, QVBoxLayout, QFormLayout, QLineEdit, QDialogButtonBox, QMessageBox
 )
 from PyQt5.QtWidgets import QPushButton, QHBoxLayout
 from PyQt5.QtWidgets import QVBoxLayout
@@ -37,6 +39,8 @@ def is_time_slot_available(date, start_time, end_time):
                     # 시간이 겹치면 False 반환
                     return False
         return True
+
+
 
 class Sidebar(QTableWidget):
     def __init__(self, parent=None):
@@ -166,6 +170,58 @@ class Sidebar(QTableWidget):
         else:
             event.ignore()
 
+
+    def is_valid_time_format(self, time_str):
+        """시간 형식이 HH:MM인지 확인하는 함수"""
+        return bool(re.match(r'^\d{2}:\d{2}$', time_str))  # HH:MM 형식 (예: 12:34)
+    
+    def set_time(self, data, start_time, end_time):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("시간 수정")
+        
+        # 레이아웃 설정
+        layout = QVBoxLayout(dialog)
+        form_layout = QFormLayout()
+
+        # 시작 시간 입력
+        self.start_time_edit = QLineEdit(dialog)
+        self.start_time_edit.setText(start_time)
+        form_layout.addRow("시작 시간 (HH:MM):", self.start_time_edit)
+
+        # 종료 시간 입력
+        self.end_time_edit = QLineEdit(dialog)
+        self.end_time_edit.setText(end_time)
+        form_layout.addRow("종료 시간 (HH:MM):", self.end_time_edit)
+
+        layout.addLayout(form_layout)
+
+        # 버튼 설정
+        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, dialog)
+        layout.addWidget(button_box)
+        button_box.accepted.connect(dialog.accept)
+        button_box.rejected.connect(dialog.reject)
+
+        # 다이얼로그 실행
+        if dialog.exec_() == QDialog.Accepted:
+            # 사용자가 OK 버튼을 클릭하면 입력된 시간 가져오기
+            new_start_time = self.start_time_edit.text()
+            new_end_time = self.end_time_edit.text()
+
+            # 입력된 시간 검증 (00:00 형식)
+            if not self.is_valid_time_format(new_start_time) or not self.is_valid_time_format(new_end_time):
+                QMessageBox.warning(dialog, "잘못된 형식", "시간은 HH:MM 형식으로 입력해야 합니다.")
+                self.set_time(data, start_time, end_time)  # 잘못된 형식일 경우 다이얼로그를 닫지 않음
+                return
+
+            # 시작 시간과 종료 시간을 업데이트
+            if new_start_time:
+                data["start_time"] = new_start_time
+                collection.update_one({"_id": data["_id"]}, {"$set": {"start_time": new_start_time}})
+
+            if new_end_time:
+                data["end_time"] = new_end_time
+                collection.update_one({"_id": data["_id"]}, {"$set": {"end_time": new_end_time}})
+
     
     def dropEvent(self, event):
         if event.mimeData().hasFormat("application/x-node-id"):
@@ -191,6 +247,13 @@ class Sidebar(QTableWidget):
                 print(f"No data found for node ID: {node_id}")
                 return
             
+            # 드래그한 노드의 시작 시간과 종료 시간 가져오기
+            new_start_time = data.get("start_time")  # 노드의 시작 시간
+            new_end_time = data.get("end_time")      # 노드의 종료 시간
+
+            if new_start_time==None or new_end_time==None:
+                self.set_time(data, new_start_time, new_end_time)
+
             # 드래그한 노드의 시작 시간과 종료 시간 가져오기
             new_start_time = data.get("start_time")  # 노드의 시작 시간
             new_end_time = data.get("end_time")      # 노드의 종료 시간

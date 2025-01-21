@@ -16,6 +16,8 @@ class TreeWidget(QWidget):
     def __init__(self, root_id):
         super().__init__()
         self.root_id = root_id
+
+        self.setStyleSheet("background-color: #000000;")
         
         # 줌 및 패닝 상태 변수 초기화
         self.zoom_factor = 1.0

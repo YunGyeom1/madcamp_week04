@@ -2,14 +2,15 @@
 from PyQt5.QtWidgets import (
     QGraphicsEllipseItem, QGraphicsTextItem, QGraphicsRectItem,
     QGraphicsItemGroup, QGraphicsSimpleTextItem, QInputDialog, QMenu,
-    QGraphicsItem, QListWidget
+    QGraphicsItem, QListWidget, QGraphicsPathItem
 )
-from PyQt5.QtGui import QColor, QBrush, QPen, QFont, QDrag
+from PyQt5.QtGui import QColor, QBrush, QPen, QFont, QDrag, QPainterPath
 from PyQt5.QtCore import Qt, QRectF, QPointF, QMimeData, QEventLoop
 
 from models.goal import MakeNode, set_deleted_true
 from gui.popupMenu import NodePopupMenu
 from db.db import get_collection
+from gui.colors import ThemeColors
 
 collection = get_collection()
 
@@ -26,8 +27,11 @@ class InteractiveNode(QGraphicsItemGroup):
 
         # 노드 배경
         self.background = QGraphicsRectItem(0, 0, 200, 80)
-        self.background.setBrush(QBrush(Qt.white))
-        self.background.setPen(QPen(Qt.black, 2))
+        rounded_path = QPainterPath()
+        rounded_path.addRoundedRect(0, 0, 200, 80, 8, 8)  # 반지름을 8로 설정한 둥근 직사각형
+        self.background = QGraphicsPathItem(rounded_path)
+        self.background.setBrush(QBrush(ThemeColors.LIGHT_RED))  # 배경색 빨간색
+        self.background.setPen(QPen(Qt.NoPen))  # 테두리 없음
         self.background.setZValue(-1)
         self.addToGroup(self.background)
 
@@ -123,9 +127,17 @@ class InteractiveNode(QGraphicsItemGroup):
         try:
             if self.plus_button.contains(self.mapFromScene(event.scenePos())):
                 # + 버튼 클릭: 새 자식 노드 추가
+                
                 new_child_id = MakeNode(f"Child of {self.node['title']}", self.node["_id"])
                 # 데이터 갱신
                 self.node["children"].append(new_child_id)
+                new_title, ok = QInputDialog.getText(self.scene().views()[0], "자식 노드 제목 변경", "새 제목을 입력하세요:", text=f"Child of {self.node['title']}")
+
+                if ok and new_title:
+                    # 새 제목을 자식 노드에 적용
+                    collection.update_one({"_id": new_child_id}, {"$set": {"title": new_title}})
+                    if self.update_callback:
+                        self.update_callback()
 
                 if self.update_callback:
                     self.update_callback()
