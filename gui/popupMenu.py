@@ -1,7 +1,7 @@
 #popupMenu.py
 from PyQt5.QtWidgets import QDialog, QAction, QInputDialog, QCalendarWidget, QDialog, QVBoxLayout, QPushButton, QLabel, QWidgetAction, QTimeEdit
 from PyQt5.QtCore import QDate, QTime
-from PyQt5.QtCore import Qt, QRectF
+from PyQt5.QtCore import Qt, QRectF, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget
 import sys
 from PyQt5.QtWidgets import (
@@ -15,8 +15,10 @@ from db.db import get_collection
 collection = get_collection()
 
 class NodePopupMenu(QDialog):
+    popup_closed = pyqtSignal()  # 팝업 종료 시 신호
     def __init__(self, node_id=None):
         super().__init__()
+        
         self.setWindowTitle("활동 세부 사항")
         self.resize(400, 600)  # 다이얼로그 크기 설정
 
@@ -110,7 +112,15 @@ class NodePopupMenu(QDialog):
         self.save_button.clicked.connect(lambda: self.save_node_changes(node_id))
 
         self.setLayout(layout)
-        
+
+    def accept(self):
+        super().accept()
+        self.popup_closed.emit()  # 팝업 종료 신호 보내기
+
+    def reject(self):
+        super().reject()
+        self.popup_closed.emit()  # 팝업 종료 신호 보내기
+
     def update_repeat_label_visibility(self):
         if self.repeat_type.currentText() == "반복 안함":
             self.repeat_label.hide()

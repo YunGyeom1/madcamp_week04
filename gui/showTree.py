@@ -5,8 +5,12 @@ from PyQt5.QtGui import QPen, QPainter, QTransform
 from bson.objectid import ObjectId
 from models.goal import get_collection, duplicate_node, set_deleted_true
 from gui.interactions import InteractiveNode
-
+import os
+from dotenv import load_dotenv
 import sys
+
+env_path = os.path.join(os.path.dirname(__file__), '../.env')
+load_dotenv(dotenv_path = env_path)
 
 tag_collection = get_collection("Tags")
 collection = get_collection()
@@ -17,6 +21,10 @@ class TreeWidget(QWidget):
         super().__init__()
         self.root_id = root_id
         self.copied_node_id = None
+        self.update_date = None
+        self.update_sidebar = None
+
+        self.setStyleSheet("background-color: #000000;")
         
         # 줌 및 패닝 상태 변수 초기화
         self.zoom_factor = 1.0
@@ -45,13 +53,16 @@ class TreeWidget(QWidget):
 
     def update_tree(self):
         self.scene.clear()
-        root = collection.find_one({"_id": self.root_id})
+        root_id = ObjectId(os.getenv("DUMMY_ROOT_ID"))
+        root = collection.find_one({"_id": root_id})
         root_x = 1000-root["height"]*200
         root_y = 100
         print("와우", root_x, root_y)
         self.place_node(root, root_x, root_y)
 
         self.view.ensureVisible(root_x - 100, root_y - 100, 200, 200)
+        if self.update_sidebar:
+            self.update_sidebar()
     
     def place_node(self, node, x, y):
         vnode = InteractiveNode(node, self.update_tree)
@@ -78,13 +89,12 @@ class TreeWidget(QWidget):
                 if "deleted" not in selected_tags:
                     continue
 
-            
             child_x = 1000 - child_node["height"] * 200
             if child_node and 'deleted' not in child_node["tag"]:
                 self.place_node(child_node, child_x, child_y)
                 self.add_edge(vnode.pos(), QPointF(child_x, child_y))
                 child_y += child_node["width"] * 100
-     
+ 
     def add_edge(self, parent_pos, child_pos):
         parent = QPointF(parent_pos.x() + 75, parent_pos.y() + 15)  # x 간격 증가, y 간격 감소
         child = QPointF(child_pos.x(), child_pos.y() + 15)  # y 간격 감소
