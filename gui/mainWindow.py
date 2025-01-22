@@ -56,6 +56,7 @@ class MainWindow(QMainWindow):
         self.update_sidebar = self.sidebar.populate_table
         self.filter_widget.update_sidebar = self.update_sidebar
         self.tree_widget.update_sidebar = self.update_sidebar
+        self.tree_widget.update_filter = self.filter_widget.check_for_tag_updates
 
         self.sidebar.setFixedWidth(450)  # 사이드바 폭 고정
         main_layout.addWidget(self.sidebar, stretch=1)  # Sidebar 배치

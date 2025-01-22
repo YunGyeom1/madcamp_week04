@@ -14,6 +14,7 @@ import os
 from db.db import get_collection
 from models.goal import set_child_color
 collection = get_collection()
+tag_collection = get_collection("Tags")
 
 class NodePopupMenu(QDialog):
     popup_closed = pyqtSignal()  # 팝업 종료 시 신호
@@ -21,6 +22,7 @@ class NodePopupMenu(QDialog):
         super().__init__()
         self.update_callback = update_callback
         self.update_callback2 = update_callback2
+        self.update_filter = None
         
         self.setWindowTitle("활동 세부 사항")
         self.resize(400, 600)  # 다이얼로그 크기 설정
@@ -196,7 +198,7 @@ class NodePopupMenu(QDialog):
         end_time = self.end_time.time().toString("HH:mm")
         hide_toggle = self.hide_checkbox.isChecked()
         tag = self.tag_input.text()
-        tag = list(map(str.strip, tag.split(","))) if tag else []
+        tags = list(map(str.strip, tag.split(", "))) if tag else []
 
         repeat_count = int(self.repeat_count.currentText())
         repeat_type_mapping = {"반복 안함": 0, "일": 1, "주": 2, "달": 3}
@@ -207,14 +209,17 @@ class NodePopupMenu(QDialog):
         if not node_data:
             print(f"Error: Node with ID {node_id} not found.")
             return
-
+        existing_tags = {tag["name"] for tag in tag_collection.find({}, {"name": 1})}
+        new_tags = set(tags) - existing_tags
+        if new_tags:
+            tag_collection.insert_many([{"name": t, "selected": False} for t in new_tags])
         # DB 스키마 업데이트
         updated_node = {
             "description": description,
             "start_time": start_time,
             "end_time": end_time,
             "isOpen": not hide_toggle,
-            "tag": tag,
+            "tag": tags,
             "repeat": [repeat_count, repeat_type],
         }
 
@@ -223,6 +228,7 @@ class NodePopupMenu(QDialog):
             {"_id": node_id},
             {"$set": updated_node}
         )
+
         set_child_color(node_id, self.node_color)
         if self.update_callback:
             self.update_callback()
@@ -230,6 +236,9 @@ class NodePopupMenu(QDialog):
             self.update_callback2()
         else:
             print("error")
+        if self.update_filter:
+            self.update_filter()
+        else: print("error222")
         print("노드가 성공적으로 업데이트되었습니다.")
 
 

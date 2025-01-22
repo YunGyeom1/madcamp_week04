@@ -52,14 +52,9 @@ class Sidebar(QTableWidget):
         self.scene = QGraphicsScene(self)
         self._setup_ui()
         self.populate_table()
-        self.update = None
         self.selected_dates = None
         self.selected_nodes = None
         self.last_clicked_date = None
-
-    def update(self):
-        """Sidebar 갱신 메서드"""
-        self.populate_table() 
 
     def _setup_ui(self):
         """UI 초기 설정"""

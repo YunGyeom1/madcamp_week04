@@ -20,6 +20,8 @@ class TagFilterWidget(QWidget):
         self.update_sidebar = None
 
     def init_ui(self):
+        print(self.tags, "efljkewlfkaneflkwehfaosibgiqlerhg")
+
         # 메인 레이아웃 설정
         self.setStyleSheet("background-color: #F5F5F5;")
         main_layout = QVBoxLayout()
@@ -66,6 +68,13 @@ class TagFilterWidget(QWidget):
 
             # 버튼을 수평 레이아웃에 추가
             self.scroll_layout.addWidget(button)
+
+    def check_for_tag_updates(self):
+        """태그 DB 변경 감지 및 UI 업데이트"""
+        self.tags = list(tag_collection.find())
+        self.tags.sort(key=lambda tag: (tag["name"] != "all", tag["name"] == "deleted"))
+        self.ensure_essential_tags()
+        self.init_ui()
 
     def update_button_style(self, button, tag_name, is_selected):
         if tag_name == "deleted":
