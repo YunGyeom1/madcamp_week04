@@ -26,7 +26,7 @@ class MainWindow(QMainWindow):
 
         # 태그 필터 생성 및 추가
         self.filter_widget = TagFilterWidget(self.update_tree)
-        self.filter_widget.update_sidebar = self.update_sidebar
+        
         layout.addWidget(self.filter_widget)  # 필터를 위에 추가
 
         # 수평 레이아웃: Tree와 Sidebar 배치
@@ -47,14 +47,16 @@ class MainWindow(QMainWindow):
         self.tree_widget = TreeWidget(root)
         self.scene.addWidget(self.tree_widget)  # 트리 위젯 추가
         self.scene.setSceneRect(QRectF(self.view.rect()))
-        self.tree_widget.update_sidebar = self.update_sidebar
-
+        
         # QGraphicsView를 레이아웃에 추가
         main_layout.addWidget(self.view, stretch=4)
 
         # Sidebar 생성 및 설정 (사이드바는 오른쪽에 배치)
         self.sidebar = Sidebar()
         self.update_sidebar = self.sidebar.update
+        self.filter_widget.update_sidebar = self.update_sidebar
+        self.tree_widget.update_sidebar = self.update_sidebar
+
         self.sidebar.setFixedWidth(420)  # 사이드바 폭 고정
         main_layout.addWidget(self.sidebar, stretch=1)  # Sidebar 배치
         
@@ -67,8 +69,6 @@ class MainWindow(QMainWindow):
     def update_tree(self):
         self.tree_widget.update_tree()
     
-    def update_sidebar(self):
-        self.sidebar.update()
 
     def resizeEvent(self, event):
         """윈도우 크기 조정 이벤트 처리."""
@@ -126,6 +126,7 @@ if __name__ == "__main__":
 
     app = QApplication(sys.argv)
     font_id = QFontDatabase.addApplicationFont("assets/제주고딕(윈도우).ttf")
+    print("FontID: ", font_id)
     font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
     app.setFont(QFont(font_family, 10))
     root_node_id = create_sample_tree()

@@ -26,6 +26,7 @@ GOAL_SCHEMA_TEMPLATE = {
     "date": None,
     "start_time": None,
     "end_time": None,
+    "color": None,
 }
 
 
@@ -172,6 +173,27 @@ def set_deleted_true(node_id):
     if "children" in node:
         for child_id in node["children"]:
             set_deleted_true(child_id)
+
+def set_child_color(node_id, color):
+    """
+    주어진 노드와 그 자식 노드들에 색을 추가합니다.
+    """
+    # 해당 노드 찾기
+    node = collection.find_one({"_id": node_id})
+    if not node:
+        raise ValueError(f"Node with ID {node_id} does not exist.")
+
+    # 노드 업데이트
+    collection.update_one(
+        {"_id": node_id},
+        {"$set": {"color": color}}
+    )
+    
+
+    # 자식 노드들에 대해서도 재귀적으로 'deleted' 태그 추가
+    if "children" in node:
+        for child_id in node["children"]:
+            set_child_color(child_id, color)
 
 def update_parent_task(node_id):
     node = collection.find_one({"_id": node_id})

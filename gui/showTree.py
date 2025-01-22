@@ -54,7 +54,7 @@ class TreeWidget(QWidget):
     def update_tree(self):
         self.scene.clear()
         root = collection.find_one({"_id": self.root_id})
-        root_x = 1000-root["height"]*200
+        root_x = 1000-root["height"]*250
         root_y = 100
         print("와우", root_x, root_y)
         self.place_node(root, root_x, root_y)
@@ -65,6 +65,7 @@ class TreeWidget(QWidget):
     
     def place_node(self, node, x, y):
         vnode = InteractiveNode(node, self.update_tree)
+        vnode.update_sidebar = self.update_sidebar
         vnode.setPos(x, y)
         print(node["title"], node["width"], node["height"], x, y, node["tag"])
         self.scene.addItem(vnode)

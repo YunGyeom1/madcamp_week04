@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout, QFrame
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QColor, QBrush
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QPushButton, QHBoxLayout, QInputDialog, QDialog, QVBoxLayout, QFormLayout, QLineEdit, QDialogButtonBox, QSizePolicy
 from models.goal import MakeNode, set_deleted_true
@@ -23,10 +23,14 @@ class EndNode(QWidget):
         start_time = node.get("start_time", "N/A")
         end_time = node.get("end_time", "N/A")
 
+        # 색상 읽기 (기본값: 흰색)
+        node_color = node.get("color", "#FFFFFF")  # HEX 색상 코드
+        print(node_color)
+
         # 외곽 프레임 생성
         self.frame = QFrame(self)
         self.frame.setStyleSheet(f"""
-            background-color: {StyleColors.LIGHT_RED};  /* 커스텀 색깔 */
+            background-color: {node_color};  /* 커스텀 색깔 */
             border-radius: 8px;         /* 약간 둥근 모서리 */
         """)
         frame_layout = QVBoxLayout(self.frame)
