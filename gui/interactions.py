@@ -77,7 +77,7 @@ class InteractiveNode(QGraphicsItemGroup):
         # 시작 시간 표시
         self.start_time_text = QGraphicsSimpleTextItem(self.node.get("start_time", "Not Set"))
 
-        font_id = QFontDatabase.addApplicationFont("/Users/yungyeom/Downloads/madcamp_week4/madcamp_week04/assets/hi.otf")
+        font_id = QFontDatabase.addApplicationFont("/Users/yungyeom/Downloads/madcamp_week4/madcamp_week04/assets/제주고딕(윈도우).otf")
         print("FontID", font_id)
         font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
         self.start_time_text.setFont(QFont(font_family, 10))
@@ -165,9 +165,9 @@ class InteractiveNode(QGraphicsItemGroup):
                     drag.exec_(Qt.MoveAction)
             elif self.menu_button.contains(self.mapFromScene(event.scenePos())):
                 # ... 버튼 클릭: 기존 팝업 닫기
-                if self.popup_menu:
-                    self.popup_menu.close()  # 기존 팝업 닫기
-                    self.popup_menu = None   # 참조 제거
+                # if self.popup_menu:
+                #     self.popup_menu.close()  # 기존 팝업 닫기
+                #     self.popup_menu = None   # 참조 제거
 
 
             

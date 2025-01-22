@@ -165,14 +165,7 @@ class EndNode(QWidget):
 
     def setSelected(self, selected):
         self.is_selected = selected
-        self.frame.setStyleSheet("border: 2px solid blue;") if selected else self.frame.setStyleSheet("border: 2px solid black;")
 
-
-    def mouseReleaseEvent(self, event):
-        selected_items = self.table.selectedItems()
-        selected_nodes = [item.data(Qt.UserRole) for item in selected_items]  # QTableWidgetItem에서 'node' 데이터 추출
-        
-        print(f"Selected items after drag: {[node for node in selected_nodes]}")   
 if __name__ == "__main__":
     import sys
 
