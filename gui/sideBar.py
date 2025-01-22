@@ -58,9 +58,10 @@ class Sidebar(QTableWidget):
     def _setup_ui(self):
         """UI 초기 설정"""
         self.setHorizontalHeaderLabels(["Node", "Date"])  # 헤더 설정
-        self.setColumnWidth(0, 300)
+        self.setColumnWidth(0, 270)
         self.setColumnWidth(1, 150)
         self.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollMode(self.ScrollPerPixel)
         self.setHorizontalScrollMode(self.ScrollPerPixel)
         self.installEventFilter(self)
@@ -75,7 +76,7 @@ class Sidebar(QTableWidget):
         # 날짜 범위 계산 (-30일 ~ +30일)
         all_dates = [
             self.current_date.addDays(i).toString("yyyy-MM-dd")
-            for i in range(-35, 365)
+            for i in range(-35, 305)
         ]
         qdate_list = [self.current_date.addDays(i) for i in range(-self.date_range, self.date_range + 1)]
         

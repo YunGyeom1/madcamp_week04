@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QApplication, QGraphicsScene, QGraphicsView, QMainWindow, QVBoxLayout, QWidget, QHBoxLayout
 from PyQt5.QtCore import Qt, QRectF
-from PyQt5.QtGui import QPainter
+from PyQt5.QtGui import QPainter, QFontDatabase, QFont
 from bson.objectid import ObjectId
 from dotenv import load_dotenv
 import os
@@ -52,11 +52,12 @@ class MainWindow(QMainWindow):
 
         # Sidebar 생성 및 설정 (사이드바는 오른쪽에 배치)
         self.sidebar = Sidebar()
-        self.sidebar.setFixedWidth(450)  # 사이드바 폭 고정
+        self.sidebar.setFixedWidth(420)  # 사이드바 폭 고정
         main_layout.addWidget(self.sidebar, stretch=1)  # Sidebar 배치
         
         # 윈도우 기본 설정
-        self.setWindowTitle("Resizable Tree and Sidebar with Filter")
+        self.setWindowTitle("NODELIGHT")  # 창의 타이틀 설정
+
         self.resize(1200, 800)
         self.setMinimumSize(800, 600)
 
@@ -107,6 +108,9 @@ if __name__ == "__main__":
     import sys
 
     app = QApplication(sys.argv)
+    font_id = QFontDatabase.addApplicationFont("assets/제주고딕(윈도우).ttf")
+    font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
+    app.setFont(QFont(font_family, 10))
     root_node_id = create_sample_tree()
     main_window = MainWindow(root_node_id)
     main_window.show()

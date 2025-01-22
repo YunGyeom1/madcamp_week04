@@ -47,7 +47,7 @@ class TreeWidget(QWidget):
     def update_tree(self):
         self.scene.clear()
         root = collection.find_one({"_id": self.root_id})
-        root_x = 1000-root["height"]*200
+        root_x = 1000-root["height"]*250
         root_y = 100
         print("와우", root_x, root_y)
         self.place_node(root, root_x, root_y)
@@ -80,7 +80,7 @@ class TreeWidget(QWidget):
                     continue
 
             
-            child_x = 1000 - child_node["height"] * 200
+            child_x = 1000 - child_node["height"] * 250
             if child_node and 'deleted' not in child_node["tag"]:
                 self.place_node(child_node, child_x, child_y)
                 self.add_edge(vnode.pos(), QPointF(child_x, child_y))
@@ -91,27 +91,27 @@ class TreeWidget(QWidget):
         child = QPointF(child_pos.x(), child_pos.y() + 15)  # y 간격 감소
 
         if parent.y() == child.y():
-            line = QGraphicsLineItem(parent.x(), parent.y(), child.x(), child.y())
-            line.setPen(QPen(Qt.red, 2))
+            line = QGraphicsLineItem(parent.x()+125, parent.y(), child.x(), child.y())
+            line.setPen(QPen(Qt.white, 2))
             self.scene.addItem(line)
             return
 
         if parent.x() == child.x():
             line = QGraphicsLineItem(parent.x(), parent.y(), child.x(), child.y())
-            line.setPen(QPen(Qt.red, 2))
+            line.setPen(QPen(Qt.white, 2))
             self.scene.addItem(line)
             return
 
         # 수평, 수직, 수평 선분의 중간 좌표 계산
         mid = QPointF(parent_pos.x() + 100, parent_pos.y() + 15)  # x 간격 증가, y 간격 감소
-        # 첫 번째 수평 직선
-        line1 = QGraphicsLineItem(mid.x(), mid.y(), mid.x(), child.y())
-        line1.setPen(QPen(Qt.red, 2))
+        # 첫 번째 수직 직선
+        line1 = QGraphicsLineItem(mid.x()+125, mid.y(), mid.x()+125, child.y())
+        line1.setPen(QPen(Qt.white, 2))
         self.scene.addItem(line1)
 
-        # 수직 직선
-        line2 = QGraphicsLineItem(mid.x(), child.y(), child.x(), child.y())
-        line2.setPen(QPen(Qt.red, 2))
+        # 수평 직선
+        line2 = QGraphicsLineItem(mid.x()+125, child.y(), child.x(), child.y())
+        line2.setPen(QPen(Qt.white, 2))
         self.scene.addItem(line2)
 
     def zoom_event(self, event):

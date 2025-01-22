@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import (
     QGraphicsItemGroup, QGraphicsSimpleTextItem, QInputDialog, QMenu,
     QGraphicsItem, QListWidget, QGraphicsPathItem
 )
-from PyQt5.QtGui import QColor, QBrush, QPen, QFont, QDrag, QPainterPath
+from PyQt5.QtGui import QColor, QBrush, QPen, QFont, QDrag, QPainterPath, QFontDatabase
 from PyQt5.QtCore import Qt, QRectF, QPointF, QMimeData, QEventLoop
 
 from models.goal import MakeNode, set_deleted_true
@@ -38,7 +38,7 @@ class InteractiveNode(QGraphicsItemGroup):
         # 상태 표시
         self.status_indicator = QGraphicsEllipseItem(10, 30, 20, 20)
         self.status_indicator.setBrush(QBrush(Qt.red))
-        self.status_indicator.setPen(QPen(Qt.black))
+        self.status_indicator.setPen(QPen(Qt.NoPen))
         self.addToGroup(self.status_indicator)
 
         # 제목 텍스트
@@ -48,38 +48,40 @@ class InteractiveNode(QGraphicsItemGroup):
         self.addToGroup(self.title_text)
 
         # "+" 버튼
-        self.plus_button = QGraphicsEllipseItem(170, 25, 30, 30)
-        self.plus_button.setBrush(QBrush(Qt.lightGray))
-        self.plus_button.setPen(QPen(Qt.black))
+        self.plus_button = QGraphicsEllipseItem(160, 13, 30, 30)
+        self.plus_button.setBrush(QBrush(Qt.white))
+        self.plus_button.setPen(QPen(Qt.NoPen))
         self.addToGroup(self.plus_button)
 
         # "+" 텍스트
         self.plus_text = QGraphicsSimpleTextItem("+")
         self.plus_text.setFont(QFont("Arial", 14, QFont.Bold))
-        self.plus_text.setPos(180, 30)
+        self.plus_text.setPos(167, 13)
         self.plus_text.setParentItem(self.plus_button)
         
         # "..." 버튼
-        self.menu_button = QGraphicsEllipseItem(140, 25, 30, 30)
-        self.menu_button.setBrush(QBrush(Qt.lightGray))
-        self.menu_button.setPen(QPen(Qt.black))
+        self.menu_button = QGraphicsEllipseItem(125, 13, 30, 30)
+        self.menu_button.setBrush(QBrush(Qt.white))
+        self.menu_button.setPen(QPen(Qt.NoPen))
         self.addToGroup(self.menu_button)
 
         # "..." 텍스트
         self.menu_text = QGraphicsSimpleTextItem("...")
         self.menu_text.setFont(QFont("Arial", 14, QFont.Bold))
-        self.menu_text.setPos(150, 30)
+        self.menu_text.setPos(128, 5)
         self.menu_text.setParentItem(self.menu_button)
         # 시작 시간 표시
         self.start_time_text = QGraphicsSimpleTextItem(self.node.get("start_time", "Not Set"))
-        self.start_time_text.setFont(QFont("Arial", 10))
-        self.start_time_text.setPos(40, 40)
+        font_id = QFontDatabase.addApplicationFont("assets/제주고딕(윈도우).ttf")
+        font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
+        self.start_time_text.setFont(QFont(font_family, 10))
+        self.start_time_text.setPos(40, 50)
         self.addToGroup(self.start_time_text)
 
         # 종료 시간 표시
         self.end_time_text = QGraphicsSimpleTextItem(self.node.get("end_time", "Not Set"))
-        self.end_time_text.setFont(QFont("Arial", 10))
-        self.end_time_text.setPos(40, 60)
+        self.end_time_text.setFont(QFont(font_family, 10))
+        self.end_time_text.setPos(100, 50)
         self.addToGroup(self.end_time_text)
         self.popup_menu = None
         
