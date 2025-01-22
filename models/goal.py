@@ -37,12 +37,16 @@ def MakeNode(title="Untitled Node", parent=None, description=""):
         "parent": parent,
         "tag": ["all"],  # 항상 'all' 태그를 포함
     })
+    if not goal_schema["color"]:
+        goal_schema["color"]="#FFFFFF"
 
     result = collection.insert_one(goal_schema)
     print(title, parent, description)
     if parent:
         collection.update_one({"_id": parent}, {"$push": {"children": result.inserted_id}})
         update_height(parent)
+        parent_node=collection.find_one({"_id": parent})
+        collection.update_one({"_id": result.inserted_id}, {"$set": {"color": parent_node["color"]}})
     return result.inserted_id
 
 def set_time(node_id, start_time=None, end_time=None):
@@ -186,8 +190,6 @@ def set_child_color(node_id, color):
         {"$set": {"color": color}}
     )
     
-
-    # 자식 노드들에 대해서도 재귀적으로 'deleted' 태그 추가
     if "children" in node:
         for child_id in node["children"]:
             set_child_color(child_id, color)

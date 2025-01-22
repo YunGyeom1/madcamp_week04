@@ -64,15 +64,14 @@ class TreeWidget(QWidget):
             self.update_sidebar()
     
     def place_node(self, node, x, y):
+        if node["date"] : 
+            return # leaf 노드면 더 로닝 ㄴㄴ
         vnode = InteractiveNode(node, self.update_tree)
         vnode.update_sidebar = self.update_sidebar
         vnode.setPos(x, y)
         print(node["title"], node["width"], node["height"], x, y, node["tag"])
         self.scene.addItem(vnode)
 
-         # 기본 세로 간격
-        if node["date"] : 
-            return # leaf 노드면 더 로닝 ㄴㄴ
 
         selected_tags = [tag["name"] for tag in tag_collection.find({"selected": True})]
         
@@ -88,6 +87,8 @@ class TreeWidget(QWidget):
             if "deleted" in child_node.get("tag", []):
                 if "deleted" not in selected_tags:
                     continue
+            if child_node["date"]:
+                continue
 
             
             child_x = 1000 - child_node["height"] * 250

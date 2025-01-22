@@ -53,11 +53,11 @@ class MainWindow(QMainWindow):
 
         # Sidebar 생성 및 설정 (사이드바는 오른쪽에 배치)
         self.sidebar = Sidebar()
-        self.update_sidebar = self.sidebar.update
+        self.update_sidebar = self.sidebar.populate_table
         self.filter_widget.update_sidebar = self.update_sidebar
         self.tree_widget.update_sidebar = self.update_sidebar
 
-        self.sidebar.setFixedWidth(420)  # 사이드바 폭 고정
+        self.sidebar.setFixedWidth(450)  # 사이드바 폭 고정
         main_layout.addWidget(self.sidebar, stretch=1)  # Sidebar 배치
         
         # 윈도우 기본 설정
@@ -126,6 +126,7 @@ if __name__ == "__main__":
 
     app = QApplication(sys.argv)
     font_id = QFontDatabase.addApplicationFont("assets/제주고딕(윈도우).ttf")
+
     print("FontID: ", font_id)
     font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
     app.setFont(QFont(font_family, 10))
