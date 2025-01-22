@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QPushButton, QScrollArea, QVBoxLayout
+from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QPushButton, QScrollArea, QVBoxLayout, QSizePolicy, QLabel
 from PyQt5.QtCore import Qt, QEvent
 from pymongo import MongoClient
 import os
@@ -26,6 +26,7 @@ class TagFilterWidget(QWidget):
         main_layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(main_layout)
 
+    
         # 스크롤 영역 추가
         self.scroll_area = QScrollArea()  # 클래스 속성으로 선언
         self.scroll_area.setWidgetResizable(True)
