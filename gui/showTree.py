@@ -23,6 +23,7 @@ class TreeWidget(QWidget):
         self.copied_node_id = None
         self.update_date = None
         self.update_sidebar = None
+        self.update_filter = None
 
         self.setStyleSheet("background-color: #000000;")
         
@@ -68,6 +69,7 @@ class TreeWidget(QWidget):
             return # leaf 노드면 더 로닝 ㄴㄴ
         vnode = InteractiveNode(node, self.update_tree)
         vnode.update_sidebar = self.update_sidebar
+        vnode.update_filter = self.update_filter
         vnode.setPos(x, y)
         print(node["title"], node["width"], node["height"], x, y, node["tag"])
         self.scene.addItem(vnode)

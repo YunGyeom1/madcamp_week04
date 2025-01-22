@@ -13,6 +13,7 @@ from db.db import get_collection
 from gui.colors import ThemeColors
 
 collection = get_collection()
+tag_collection = get_collection("Tags")
 
 class InteractiveNode(QGraphicsItemGroup):
     def __init__(self, node, update_callback):
@@ -25,6 +26,7 @@ class InteractiveNode(QGraphicsItemGroup):
         self.setFlag(QGraphicsItem.ItemIsFocusable)
         self.setFocus()  # 필요시 포커스 설정
         self.update_sidebar = None
+        self.update_filter = None
 
         # 색상 읽기 (기본값: 흰색)
         node_color = self.node.get("color", "#FFFFFF")  # HEX 색상 코드
@@ -90,6 +92,11 @@ class InteractiveNode(QGraphicsItemGroup):
         self.end_time_text.setPos(100, 50)
         self.addToGroup(self.end_time_text)
         self.popup_menu = None
+        tags = self.node["tag"]
+        existing_tags = {tag["name"] for tag in tag_collection.find({}, {"name": 1})}
+        new_tags = set(tags) - existing_tags
+        if new_tags:
+            tag_collection.insert_many([{"name": t, "selected": False} for t in new_tags])
         
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Backspace:
@@ -173,6 +180,7 @@ class InteractiveNode(QGraphicsItemGroup):
             
                 # 새로운 팝업 메뉴 표시
                 self.popup_menu = NodePopupMenu(node_id=self.node["_id"], update_callback=self.update_callback, update_callback2=self.update_sidebar)
+                self.popup_menu.update_filter = self.update_filter
                 self.popup_menu.popup_closed.connect(self.reset_popup_menu)
                 self.popup_menu.show()
                 self.popup_menu.exec_()
