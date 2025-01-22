@@ -77,7 +77,7 @@ class InteractiveNode(QGraphicsItemGroup):
         # 시작 시간 표시
         self.start_time_text = QGraphicsSimpleTextItem(self.node.get("start_time", "Not Set"))
 
-        font_id = QFontDatabase.addApplicationFont("/Users/yungyeom/Downloads/madcamp_week4/madcamp_week04/assets/hi.otf")
+        font_id = QFontDatabase.addApplicationFont("assets/제주고딕(윈도우).ttf")
         print("FontID", font_id)
         font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
         self.start_time_text.setFont(QFont(font_family, 10))
