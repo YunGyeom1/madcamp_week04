@@ -1,5 +1,5 @@
 #popupMenu.py
-from PyQt5.QtWidgets import QDialog, QAction, QInputDialog, QCalendarWidget, QDialog, QVBoxLayout, QPushButton, QLabel, QWidgetAction, QTimeEdit
+from PyQt5.QtWidgets import QDialog, QAction, QInputDialog, QCalendarWidget, QDialog, QVBoxLayout, QPushButton, QLabel, QWidgetAction, QTimeEdit, QColorDialog
 from PyQt5.QtCore import QDate, QTime
 from PyQt5.QtCore import Qt, QRectF, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget
@@ -12,12 +12,15 @@ from PyQt5.QtCore import Qt
 from pymongo import MongoClient
 import os
 from db.db import get_collection
+from models.goal import set_child_color
 collection = get_collection()
 
 class NodePopupMenu(QDialog):
     popup_closed = pyqtSignal()  # 팝업 종료 시 신호
-    def __init__(self, node_id=None):
+    def __init__(self, node_id=None, update_callback=None, update_callback2=None):
         super().__init__()
+        self.update_callback = update_callback
+        self.update_callback2 = update_callback2
         
         self.setWindowTitle("활동 세부 사항")
         self.resize(400, 600)  # 다이얼로그 크기 설정
@@ -101,6 +104,15 @@ class NodePopupMenu(QDialog):
         self.repeat_type.currentIndexChanged.connect(self.update_repeat_label_visibility) 
 
 
+        # 색상 선택 버튼 추가
+        layout.addWidget(QLabel("노드 색상"))
+        self.color_button = QPushButton("색상 선택")
+        self.color_button.clicked.connect(self.choose_color)
+        self.node_color = self.node_data.get("color", "#FFFFFF")  # 기본 색상 흰색
+        self.update_color_button(self.node_color)  # 버튼 배경 업데이트
+        layout.addWidget(self.color_button)
+
+
         # 숨기기 토글
         self.hide_checkbox = QCheckBox("달성률 숨기기 토글")
         self.hide_checkbox.setChecked(self.node_data.get("isOpen", False))
@@ -126,6 +138,17 @@ class NodePopupMenu(QDialog):
             self.repeat_label.hide()
         else:
             self.repeat_label.show()
+
+    def choose_color(self):
+        """색상 선택 다이얼로그 표시."""
+        color = QColorDialog.getColor()
+        if color.isValid():
+            self.node_color = color.name()  # 색상 값을 hex 문자열로 저장
+            self.update_color_button(self.node_color)
+
+    def update_color_button(self, color):
+        """색상 버튼의 배경색을 업데이트."""
+        self.color_button.setStyleSheet(f"background-color: {color};")
 
     def set_date(self):
         """달성 기간 설정 팝업."""
@@ -200,6 +223,13 @@ class NodePopupMenu(QDialog):
             {"_id": node_id},
             {"$set": updated_node}
         )
+        set_child_color(node_id, self.node_color)
+        if self.update_callback:
+            self.update_callback()
+        if self.update_callback2:
+            self.update_callback2()
+        else:
+            print("error")
         print("노드가 성공적으로 업데이트되었습니다.")
 
 

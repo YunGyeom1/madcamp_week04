@@ -26,8 +26,8 @@ GOAL_SCHEMA_TEMPLATE = {
     "date": None,
     "start_time": None,
     "end_time": None,
+    "color": None,
 }
-
 
 def MakeNode(title="Untitled Node", parent=None, description=""):
     goal_schema = copy.deepcopy(GOAL_SCHEMA_TEMPLATE)  # 원본 수정 방지
@@ -55,7 +55,6 @@ def set_time(node_id, start_time=None, end_time=None):
     collection.update_one({"_id": node_id}, {"$set": update_data})
     return node_id
 
-
 def add_leaf(node_id, date=None):
     """새로운 leaf 노드를 생성하고 MongoDB에 저장"""
     data = collection.find_one({"_id": node_id})
@@ -73,7 +72,6 @@ def add_leaf(node_id, date=None):
     collection.update_one({"_id": node_id}, {"$push": {"children": leaf.inserted_id}})
     
     return leaf.inserted_id
-
 
 def update_height(node_id):
     data = collection.find_one({"_id": node_id})
@@ -117,8 +115,6 @@ def update_height(node_id):
     if data["parent"] is not None:
         update_height(data["parent"])
 
-    
-
 def is_leaf(node):
     """리프 노드 여부 확인."""
     data = collection.find_one({"_id": node})
@@ -148,6 +144,7 @@ def update_tags(node_id, add_tags=[], remove_tags=[]):
     return list(updated_tags)
 
 def set_deleted_true(node_id):
+    if not node_id: return
     """
     주어진 노드와 그 자식 노드들에 'deleted' 태그를 추가합니다.
     """
@@ -167,11 +164,33 @@ def set_deleted_true(node_id):
     )
     
     print(f"Added 'deleted' tag to node {node_id}.")
-
+    
     # 자식 노드들에 대해서도 재귀적으로 'deleted' 태그 추가
     if "children" in node:
         for child_id in node["children"]:
             set_deleted_true(child_id)
+    update_height(node_id)
+    
+def set_child_color(node_id, color):
+    """
+    주어진 노드와 그 자식 노드들에 색을 추가합니다.
+    """
+    # 해당 노드 찾기
+    node = collection.find_one({"_id": node_id})
+    if not node:
+        raise ValueError(f"Node with ID {node_id} does not exist.")
+
+    # 노드 업데이트
+    collection.update_one(
+        {"_id": node_id},
+        {"$set": {"color": color}}
+    )
+    
+
+    # 자식 노드들에 대해서도 재귀적으로 'deleted' 태그 추가
+    if "children" in node:
+        for child_id in node["children"]:
+            set_child_color(child_id, color)
 
 def update_parent_task(node_id):
     node = collection.find_one({"_id": node_id})
@@ -192,7 +211,6 @@ def update_parent_task(node_id):
     # 상위 부모 노드도 재귀적으로 업데이트
     if node["parent"]:
         update_parent_task(node["parent"])
-
 
 def duplicate_node(parent_node_id, obj_node_id):
     tag_collection = get_collection("Tags")

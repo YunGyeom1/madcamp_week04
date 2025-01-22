@@ -24,13 +24,17 @@ class InteractiveNode(QGraphicsItemGroup):
         self.setFlags(QGraphicsItem.ItemIsMovable | QGraphicsItem.ItemIsSelectable)
         self.setFlag(QGraphicsItem.ItemIsFocusable)
         self.setFocus()  # 필요시 포커스 설정
+        self.update_sidebar = None
+
+        # 색상 읽기 (기본값: 흰색)
+        node_color = self.node.get("color", "#FFFFFF")  # HEX 색상 코드
 
         # 노드 배경
         self.background = QGraphicsRectItem(0, 0, 200, 80)
         rounded_path = QPainterPath()
         rounded_path.addRoundedRect(0, 0, 200, 80, 8, 8)  # 반지름을 8로 설정한 둥근 직사각형
         self.background = QGraphicsPathItem(rounded_path)
-        self.background.setBrush(QBrush(ThemeColors.LIGHT_RED))  # 배경색 빨간색
+        self.background.setBrush(QBrush(QColor(node_color)))  # 배경색 빨간색
         self.background.setPen(QPen(Qt.NoPen))  # 테두리 없음
         self.background.setZValue(-1)
         self.addToGroup(self.background)
@@ -168,7 +172,7 @@ class InteractiveNode(QGraphicsItemGroup):
 
             
                 # 새로운 팝업 메뉴 표시
-                self.popup_menu = NodePopupMenu(node_id=self.node["_id"])
+                self.popup_menu = NodePopupMenu(node_id=self.node["_id"], update_callback=self.update_callback, update_callback2=self.update_sidebar)
                 self.popup_menu.popup_closed.connect(self.reset_popup_menu)
                 self.popup_menu.show()
                 self.popup_menu.exec_()

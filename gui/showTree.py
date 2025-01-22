@@ -65,6 +65,7 @@ class TreeWidget(QWidget):
     
     def place_node(self, node, x, y):
         vnode = InteractiveNode(node, self.update_tree)
+        vnode.update_sidebar = self.update_sidebar
         vnode.setPos(x, y)
         print(node["title"], node["width"], node["height"], x, y, node["tag"])
         self.scene.addItem(vnode)
