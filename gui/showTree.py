@@ -3,10 +3,14 @@ from PyQt5.QtCore import Qt, QPointF, QEvent
 from PyQt5.QtGui import QPen, QPainter, QTransform
 
 from bson.objectid import ObjectId
-from models.goal import get_collection
+from models.goal import get_collection, duplicate_node, set_deleted_true
 from gui.interactions import InteractiveNode
-
+import os
+from dotenv import load_dotenv
 import sys
+
+env_path = os.path.join(os.path.dirname(__file__), '../.env')
+load_dotenv(dotenv_path = env_path)
 
 tag_collection = get_collection("Tags")
 collection = get_collection()
@@ -16,6 +20,9 @@ class TreeWidget(QWidget):
     def __init__(self, root_id):
         super().__init__()
         self.root_id = root_id
+        self.copied_node_id = None
+        self.update_date = None
+        self.update_sidebar = None
 
         self.setStyleSheet("background-color: #000000;")
         
@@ -47,12 +54,14 @@ class TreeWidget(QWidget):
     def update_tree(self):
         self.scene.clear()
         root = collection.find_one({"_id": self.root_id})
-        root_x = 1000-root["height"]*250
+        root_x = 1000-root["height"]*200
         root_y = 100
         print("와우", root_x, root_y)
         self.place_node(root, root_x, root_y)
 
         self.view.ensureVisible(root_x - 100, root_y - 100, 200, 200)
+        if self.update_sidebar:
+            self.update_sidebar()
     
     def place_node(self, node, x, y):
         vnode = InteractiveNode(node, self.update_tree)
@@ -80,12 +89,12 @@ class TreeWidget(QWidget):
                     continue
 
             
-            child_x = 1000 - child_node["height"] * 250
+            child_x = 1000 - child_node["height"] * 200
             if child_node and 'deleted' not in child_node["tag"]:
                 self.place_node(child_node, child_x, child_y)
                 self.add_edge(vnode.pos(), QPointF(child_x, child_y))
                 child_y += child_node["width"] * 100
-     
+ 
     def add_edge(self, parent_pos, child_pos):
         parent = QPointF(parent_pos.x() + 75, parent_pos.y() + 15)  # x 간격 증가, y 간격 감소
         child = QPointF(child_pos.x(), child_pos.y() + 15)  # y 간격 감소
@@ -181,3 +190,21 @@ class TreeWidget(QWidget):
             return True  # 이벤트 소모
 
         return super().eventFilter(source, event)
+
+    def keyPressEvent(self, event):
+        if event.modifiers() == Qt.ControlModifier:
+            if event.key() == Qt.Key_C:  # Ctrl+C
+                print("ctrl-c")
+                selected_items = self.scene.selectedItems()
+                if selected_items:
+                    self.copied_node_id = selected_items[0].node["_id"]  # 선택된 노드의 ID를 저장
+            elif event.key() == Qt.Key_V:  # Ctrl+V
+                print("ctrl-v")
+                if self.copied_node_id:
+                    selected_items = self.scene.selectedItems()
+                    if selected_items:
+                        parent_node_id = selected_items[0].node["_id"]  # 부모 노드 ID
+                        duplicate_node(parent_node_id, self.copied_node_id)
+                    self.update_tree()
+        else:
+            super().keyPressEvent(event)

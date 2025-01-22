@@ -17,6 +17,7 @@ class TagFilterWidget(QWidget):
         self.tags.sort(key=lambda tag: (tag["name"] != "all", tag["name"] == "deleted"))
         self.ensure_essential_tags()
         self.init_ui()
+        self.update_sidebar = None
 
     def init_ui(self):
         # 메인 레이아웃 설정
@@ -65,7 +66,6 @@ class TagFilterWidget(QWidget):
 
             # 버튼을 수평 레이아웃에 추가
             self.scroll_layout.addWidget(button)
-
 
     def update_button_style(self, button, tag_name, is_selected):
         if tag_name == "deleted":

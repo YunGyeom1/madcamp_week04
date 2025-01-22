@@ -8,13 +8,14 @@ from PyQt5.QtWidgets import (
     QApplication, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget, QAbstractScrollArea, QMainWindow, QLabel,
     QDialog, QVBoxLayout, QFormLayout, QLineEdit, QDialogButtonBox, QMessageBox
 )
-from PyQt5.QtWidgets import QPushButton, QHBoxLayout
+from PyQt5.QtWidgets import QPushButton, QHBoxLayout, QGraphicsScene
 from PyQt5.QtWidgets import QVBoxLayout
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 from gui.endNode import EndNode
 from models.goal import add_leaf
 from api.google_calendar_service import get_events_for_date
+from datetime import datetime, timedelta
 
 # MongoDB 설정
 load_dotenv()
@@ -47,9 +48,14 @@ class Sidebar(QTableWidget):
         super().__init__(0, 2, parent)  # 2열 테이블 초기화
         self.date_range = 45  # 날짜 범위 초기화
         self.current_date = QDate.currentDate()  # 현재 날짜 초기화
-
+        self.copied_nodes = None
+        self.scene = QGraphicsScene(self)
         self._setup_ui()
         self.populate_table()
+        self.update = None
+        self.selected_dates = None
+        self.selected_nodes = None
+        self.last_clicked_date = None
 
     def update(self):
         """Sidebar 갱신 메서드"""
@@ -162,6 +168,45 @@ class Sidebar(QTableWidget):
         """스크롤 시 더 많은 날짜를 로드"""
         self.date_range += amount
         self.populate_table()
+    
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+        if event.button() == Qt.LeftButton:
+            self.clearSelection()
+
+    def mouseReleaseEvent(self, event):
+        super().mouseReleaseEvent(event)
+        if event.button() == Qt.LeftButton:
+            self.selected_dates = self.selectedItems()  # 드래그 후 선택된 아이템들
+            print(f"Selected items after drag: {[item.text() for item in self.selected_dates]}")  # node를 텍스트로 출력
+            
+            mouse_pos = event.pos()  # 마우스 클릭 위치
+            row = self.rowAt(mouse_pos.y())  # 클릭된 행의 인덱스
+            column = self.columnAt(mouse_pos.x())  # 클릭된 열의 인덱스
+
+            print(f"Row: {row}, Column: {column}")  # 디버깅: 클릭된 행, 열 출력
+
+            if row >= 0 and column >= 0:
+                clicked_item = self.item(row, column)  # 클릭된 셀 가져오기
+                clicked_date = None  # 기본 날짜 값 설정
+
+                # 첫 번째 셀에서 날짜 확인
+                if clicked_item and clicked_item.text():  # 텍스트가 존재하는지 확인
+                    clicked_date = clicked_item.text()
+
+                # 옆 셀에서 날짜 확인 (열이 오른쪽으로 하나 더)
+                if not clicked_date and column + 1 < self.columnCount():  # 옆 셀도 확인
+                    adjacent_item = self.item(row, column + 1)  # 옆 셀 (우측 셀)
+                    if adjacent_item and adjacent_item.text():
+                        clicked_date = adjacent_item.text()
+
+                if clicked_date:
+                    self.last_clicked_date = clicked_date
+                    print(f"Clicked date: {clicked_date}")
+                else:
+                    print("No date found in clicked or adjacent cells.")
+            else:
+                print("Clicked outside of valid area.")
 
 
     def dragEnterEvent(self, event):
@@ -171,6 +216,35 @@ class Sidebar(QTableWidget):
         else:
             event.ignore()
 
+    def get_filtered_node_ids(self):
+        """선택된 날짜들에 대해 필터 조건에 맞는 node_id들을 날짜별로 반환"""
+        filtered_node_ids = {}
+        selected_tags = [tag["name"] for tag in tag_collection.find({"selected": True})]
+        
+        # 주어진  날짜들에 대해
+        for date_item in self.selected_dates:
+            date = date_item.text()
+            # 날짜별로 노드들을 담을 리스트
+            node_ids_for_date = []
+            
+            # 'date' 필드와 일치하는 노드들을 collection에서 찾기
+            nodes = collection.find({"date": date})
+            
+            for node in nodes:
+                # 1. 'deleted' 태그가 없거나, 'deleted'가 selected_tags에 포함되어야 한다
+                if "deleted" not in node.get("tag", []) or "deleted" in selected_tags:
+                    node_tags = node.get("tag", [])
+                    # 2. 최소 하나의 태그가 selected_tags에 포함되어야 한다
+                    if any(tag in selected_tags for tag in node_tags):
+                        # 필터 조건을 만족하면 node_id 추가
+                        node_ids_for_date.append(node["_id"])
+            
+            if node_ids_for_date:
+                filtered_node_ids[date] = node_ids_for_date
+        
+        self.selected_nodes = filtered_node_ids
+        print(filtered_node_ids)
+        return filtered_node_ids
 
     def is_valid_time_format(self, time_str):
         """시간 형식이 HH:MM인지 확인하는 함수"""
@@ -319,6 +393,72 @@ class Sidebar(QTableWidget):
                 return row
         return None
 
+    def keyPressEvent(self, event):
+        if event.modifiers() == Qt.ControlModifier:
+            if event.key() == Qt.Key_C:  # Ctrl+C
+                print("ctrl-c")
+                if self.selected_dates:  # 드래그 후 선택된 날짜가 있을 때만 실행
+                    self.get_filtered_node_ids()
+
+            elif event.key() == Qt.Key_V:  # Ctrl+V
+                print("ctrl-v")
+                if self.selected_nodes:
+                    selected_items = self.selected_nodes  # 이미 선택된 노드들
+
+                    all_dates = list(self.selected_nodes.keys())  # 모든 날짜를 리스트로 추출
+                    first_date_str = min(all_dates)
+                    first_date = datetime.strptime(first_date_str, "%Y-%m-%d") 
+                    
+                    drop_date_str = self.get_drop_date()  # 클릭된 날짜 (문자열)
+                    drop_date = datetime.strptime(drop_date_str, "%Y-%m-%d")  # datetime 형식으로 변환
+
+                    margin = drop_date - first_date
+
+
+                    # 복사된 여러 노드 처리
+                    for date_str, node_ids in selected_items.items():  # 날짜별로 복사된 노드들 처리
+                        for node_id in node_ids:  # 각 날짜에 해당하는 노드들 처리
+                            node = collection.find_one({"_id": node_id})  # 원본 노드 찾기
+                            if node:
+                                new_node_data = node.copy()  # 기존 노드 데이터를 복사
+                                new_node_data.pop('_id', None)
+                                # 해당 날짜에 margin을 더해서 노드 날짜 계산
+                                node_date = datetime.strptime(date_str, "%Y-%m-%d")
+                                new_node_date = node_date + margin  # margin을 더해 새로운 날짜 계산
+                                new_node_data["date"] = new_node_date.strftime("%Y-%m-%d")  # 새로운 날짜 문자열로 변환
+
+                                # MongoDB에 새 노드 추가
+                                collection.insert_one(new_node_data)
+                                print(f"Node copied with new ID: {new_node_data['_id']} on {new_node_data['date']}")
+
+                    self.populate_table()  # 테이블 갱신     
+
+            else:
+                    super().keyPressEvent(event)
+
+    def get_next_day(self, date_str):
+        """다음 날의 날짜를 반환"""
+        date = QDate.fromString(date_str, "yyyy-MM-dd")
+        next_day = date.addDays(1)
+        return next_day.toString("yyyy-MM-dd")
+
+    def get_drop_date(self):
+        # 예를 들어, selected_dates가 날짜 순서대로 정렬되어 있다고 가정
+        
+        return self.last_clicked_date
+
+    def get_selected_node_ids(self):
+        """선택된 셀들로부터 node_id를 추출하여 반환"""
+        selected_ids = []
+        selected_items = self.scene.selectedItems()  # 선택된 아이템들
+
+        for item in selected_items:
+            # 각 아이템에서 node_id를 추출
+            if hasattr(item, 'node') and item.node and "_id" in item.node:
+                node_id = item.node["_id"]
+                selected_ids.append(node_id)
+
+        return selected_ids
 
 class NodeWidget(QWidget):
     def __init__(self, title, description="", parent=None):

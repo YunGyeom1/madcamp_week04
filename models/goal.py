@@ -39,7 +39,7 @@ def MakeNode(title="Untitled Node", parent=None, description=""):
     })
 
     result = collection.insert_one(goal_schema)
-
+    print(title, parent, description)
     if parent:
         collection.update_one({"_id": parent}, {"$push": {"children": result.inserted_id}})
         update_height(parent)
@@ -77,6 +77,7 @@ def add_leaf(node_id, date=None):
 
 def update_height(node_id):
     data = collection.find_one({"_id": node_id})
+    #print(node_id, data)
     if data.get("date"):
         return
    
