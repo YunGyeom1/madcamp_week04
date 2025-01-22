@@ -16,6 +16,7 @@ class EndNode(QWidget):
         self.setFocusPolicy(Qt.StrongFocus)  # 위젯이 포커스를 받을 수 있게 설정
         self.setFocus()  
         self.is_selected = False 
+        
         # 노드 데이터에서 필요한 정보 추출
         title = node.get("title", "Untitled")
         start_time = node.get("start_time", "N/A")
@@ -51,6 +52,7 @@ class EndNode(QWidget):
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.is_selected = not self.is_selected
+            self.setSelected(self.is_selected)  # 선택 상태 반영
             print(f"Node clicked: {self.node['title']} - Selected: {self.is_selected}")
             event.accept()
     
@@ -100,7 +102,16 @@ class EndNode(QWidget):
         else:
             super().keyPressEvent(event)
 
+    def setSelected(self, selected):
+        self.is_selected = selected
+        self.frame.setStyleSheet("border: 2px solid blue;") if selected else self.frame.setStyleSheet("border: 2px solid black;")
 
+
+    def mouseReleaseEvent(self, event):
+        selected_items = self.table.selectedItems()
+        selected_nodes = [item.data(Qt.UserRole) for item in selected_items]  # QTableWidgetItem에서 'node' 데이터 추출
+        
+        print(f"Selected items after drag: {[node for node in selected_nodes]}")   
 if __name__ == "__main__":
     import sys
 

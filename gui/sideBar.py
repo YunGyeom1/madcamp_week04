@@ -6,7 +6,7 @@ from PyQt5.QtCore import Qt, QDate, QEvent, QDateTime
 from PyQt5.QtWidgets import (
     QApplication, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget, QAbstractScrollArea, QMainWindow, QLabel
 )
-from PyQt5.QtWidgets import QPushButton, QHBoxLayout
+from PyQt5.QtWidgets import QPushButton, QHBoxLayout, QGraphicsScene
 from PyQt5.QtWidgets import QVBoxLayout
 from pymongo import MongoClient
 from bson.objectid import ObjectId
@@ -43,6 +43,8 @@ class Sidebar(QTableWidget):
         super().__init__(0, 2, parent)  # 2열 테이블 초기화
         self.date_range = 45  # 날짜 범위 초기화
         self.current_date = QDate.currentDate()  # 현재 날짜 초기화
+        self.copied_nodes = None
+        self.scene = QGraphicsScene(self)
 
         self._setup_ui()
         self.populate_table()
@@ -157,7 +159,17 @@ class Sidebar(QTableWidget):
         """스크롤 시 더 많은 날짜를 로드"""
         self.date_range += amount
         self.populate_table()
+    
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+        if event.button() == Qt.LeftButton:
+            self.clearSelection()
 
+    def mouseReleaseEvent(self, event):
+        super().mouseReleaseEvent(event)
+        if event.button() == Qt.LeftButton:
+            selected_items = self.selectedItems()  # 드래그 후 선택된 아이템들
+            print(f"Selected items after drag: {[item.text() for item in selected_items]}")  # node를 텍스트로 출력
 
     def dragEnterEvent(self, event):
         """드래그 항목이 들어왔을 때 호출."""
@@ -166,7 +178,6 @@ class Sidebar(QTableWidget):
         else:
             event.ignore()
 
-    
     def dropEvent(self, event):
         if event.mimeData().hasFormat("application/x-node-id"):
             node_id = ObjectId(event.mimeData().data("application/x-node-id").data().decode("utf-8"))
@@ -255,6 +266,74 @@ class Sidebar(QTableWidget):
                 return row
         return None
 
+    def keyPressEvent(self, event):
+        if event.modifiers() == Qt.ControlModifier:
+            if event.key() == Qt.Key_C:  # Ctrl+C
+                print("ctrl-c")
+                selected_items = self.scene.selectedItems()
+                print(f"Selected items: {[item.node for item in selected_items]}") 
+                if selected_items:
+                    # 여러 개의 노드를 복사
+                    self.copied_nodes = [item.node for item in selected_items]  # 복사할 노드들
+            elif event.key() == Qt.Key_V:  # Ctrl+V
+                print("ctrl-v")
+                if self.copied_nodes:
+                    selected_items = self.scene.selectedItems()
+                    if selected_items:
+                        parent_node_id = selected_items[0].node["_id"]  # 부모 노드 ID
+                        # 새로운 날짜 계산: 드래그한 위치의 날짜
+                        drop_date = self.get_drop_date()
+
+                        # 복사된 여러 노드 처리
+                        for i, copied_node in enumerate(self.copied_nodes):
+                            new_node_data = copied_node.copy()  # 기존 데이터를 복사
+                            new_node_data["date"] = drop_date  # 새로운 날짜로 변경
+                            new_node_data["_id"] = ObjectId()  # 새로운 _id 생성
+
+                            # 부모 ID 유지
+                            new_node_data["parent_id"] = parent_node_id  # 부모 노드를 동일하게 유지
+
+                            # 시간대 중복 검사
+                            if not is_time_slot_available(drop_date, new_node_data["start_time"], new_node_data["end_time"]):
+                                print(f"Cannot add node on {drop_date}: time slot is already occupied.")
+                                continue
+
+                            # MongoDB에 새 노드 추가
+                            collection.insert_one(new_node_data)
+                            print(f"Node copied with new ID: {new_node_data['_id']}")
+
+                            # 날짜를 바꾼 후, 여러 개의 노드를 붙여넣을 때는 순차적으로 날짜를 증가시킬 수 있음
+                            drop_date = self.get_next_day(drop_date)  # 날짜를 하루씩 증가
+
+                        self.populate_table()  # 트리 갱신
+            else:
+                super().keyPressEvent(event)
+
+    def get_next_day(self, date_str):
+        """다음 날의 날짜를 반환"""
+        date = QDate.fromString(date_str, "yyyy-MM-dd")
+        next_day = date.addDays(1)
+        return next_day.toString("yyyy-MM-dd")
+
+    def get_drop_date(self):
+        """드래그한 위치의 날짜를 반환"""
+        drop_position = self.mapToScene(self.mousePos())
+        row = self.rowAt(drop_position.y())
+        date_item = self.item(row, 1)
+        return date_item.text()
+
+    def get_selected_node_ids(self):
+        """선택된 셀들로부터 node_id를 추출하여 반환"""
+        selected_ids = []
+        selected_items = self.scene.selectedItems()  # 선택된 아이템들
+
+        for item in selected_items:
+            # 각 아이템에서 node_id를 추출
+            if hasattr(item, 'node') and item.node and "_id" in item.node:
+                node_id = item.node["_id"]
+                selected_ids.append(node_id)
+
+        return selected_ids
 
 class NodeWidget(QWidget):
     def __init__(self, title, description="", parent=None):

@@ -3,7 +3,7 @@ from PyQt5.QtCore import Qt, QPointF, QEvent
 from PyQt5.QtGui import QPen, QPainter, QTransform
 
 from bson.objectid import ObjectId
-from models.goal import get_collection
+from models.goal import get_collection, duplicate_node, set_deleted_true
 from gui.interactions import InteractiveNode
 
 import sys
@@ -16,6 +16,7 @@ class TreeWidget(QWidget):
     def __init__(self, root_id):
         super().__init__()
         self.root_id = root_id
+        self.copied_node_id = None
         
         # 줌 및 패닝 상태 변수 초기화
         self.zoom_factor = 1.0
@@ -179,3 +180,21 @@ class TreeWidget(QWidget):
             return True  # 이벤트 소모
 
         return super().eventFilter(source, event)
+
+    def keyPressEvent(self, event):
+        if event.modifiers() == Qt.ControlModifier:
+            if event.key() == Qt.Key_C:  # Ctrl+C
+                print("ctrl-c")
+                selected_items = self.scene.selectedItems()
+                if selected_items:
+                    self.copied_node_id = selected_items[0].node["_id"]  # 선택된 노드의 ID를 저장
+            elif event.key() == Qt.Key_V:  # Ctrl+V
+                print("ctrl-v")
+                if self.copied_node_id:
+                    selected_items = self.scene.selectedItems()
+                    if selected_items:
+                        parent_node_id = selected_items[0].node["_id"]  # 부모 노드 ID
+                        duplicate_node(parent_node_id, self.copied_node_id)
+                    self.update_tree()
+        else:
+            super().keyPressEvent(event)

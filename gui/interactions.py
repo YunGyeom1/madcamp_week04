@@ -38,7 +38,7 @@ class InteractiveNode(QGraphicsItemGroup):
         self.addToGroup(self.status_indicator)
 
         # 제목 텍스트
-        self.title_text = QGraphicsSimpleTextItem(self.node["title"])
+        self.title_text = QGraphicsSimpleTextItem(self.node["title"][:min(15, len(self.node["title"]))])
         self.title_text.setFont(QFont("Arial", 12, QFont.Bold))
         self.title_text.setPos(40, 10)
         self.addToGroup(self.title_text)
@@ -104,31 +104,35 @@ class InteractiveNode(QGraphicsItemGroup):
 
     def mousePressEvent(self, event):
         try:
-            if self.plus_button.contains(self.mapFromScene(event.scenePos())):
-                # + 버튼 클릭: 새 자식 노드 추가
-                new_child_id = MakeNode(f"Child of {self.node['title']}", self.node["_id"])
-                # 데이터 갱신
-                self.node["children"].append(new_child_id)
+            super().mousePressEvent(event)
+            if event.button() == Qt.LeftButton:
+                self.setSelected(True) 
 
-                if self.update_callback:
-                    self.update_callback()
+                if self.plus_button.contains(self.mapFromScene(event.scenePos())):
+                    # + 버튼 클릭: 새 자식 노드 추가
+                    new_child_id = MakeNode(f"Child of {self.node['title']}", self.node["_id"])
+                    # 데이터 갱신
+                    self.node["children"].append(new_child_id)
 
-            elif self.menu_button.contains(self.mapFromScene(event.scenePos())):
-                self.show_popup()
+                    if self.update_callback:
+                        self.update_callback()
 
-            else:
-                # 기본 드래그 시작
-                view = self.scene().views()[0]  # 첫 번째 뷰 가져오기
-                drag = QDrag(view)
-                mime_data = QMimeData()
-                mime_data.setData("application/x-node-id", str(self.node["_id"]).encode("utf-8"))
-                mime_data.setText(self.node["title"])
-                drag.setMimeData(mime_data)
-                drag.exec_(Qt.MoveAction)
+                elif self.menu_button.contains(self.mapFromScene(event.scenePos())):
+                    self.show_popup()
+
+                else:
+                    
+                    # 기본 드래그 시작
+                    view = self.scene().views()[0]  # 첫 번째 뷰 가져오기
+                    drag = QDrag(view)
+                    mime_data = QMimeData()
+                    mime_data.setData("application/x-node-id", str(self.node["_id"]).encode("utf-8"))
+                    mime_data.setText(self.node["title"])
+                    drag.setMimeData(mime_data)
+                    drag.exec_(Qt.MoveAction)
                 
         except Exception as e:
             print(f"Error in mousePressEvent: {e}")
-
 
     def mouseDoubleClickEvent(self, event):
         """노드를 더블 클릭하면 제목을 변경할 수 있게 한다."""
