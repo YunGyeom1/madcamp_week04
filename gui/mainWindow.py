@@ -126,8 +126,6 @@ if __name__ == "__main__":
 
     app = QApplication(sys.argv)
     font_id = QFontDatabase.addApplicationFont("/Users/yungyeom/Downloads/madcamp_week4/madcamp_week04/assets/hi.otf")
-    print("FontID: ", font_id)
-    font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
     app.setFont(QFont(font_family, 10))
     root_node_id = create_sample_tree()
     main_window = MainWindow(root_node_id)
