@@ -89,7 +89,7 @@ class TreeWidget(QWidget):
                     continue
 
             
-            child_x = 1000 - child_node["height"] * 200
+            child_x = 1000 - child_node["height"] * 250
             if child_node and 'deleted' not in child_node["tag"]:
                 self.place_node(child_node, child_x, child_y)
                 self.add_edge(vnode.pos(), QPointF(child_x, child_y))
