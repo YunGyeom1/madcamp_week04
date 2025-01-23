@@ -126,23 +126,23 @@ class Sidebar(QTableWidget):
                         end_node = EndNode(node, self.populate_table)
                         container_layout.addWidget(end_node)
 
-            # Google Calendar 이벤트 추가
-            if date in google_grouped_data:
-                for event in google_grouped_data[date]:
-                    event_title = event.get("summary", "Untitled Event")
-                    google_node = NodeWidget(event_title)  # Custom widget to display Google event
-                    container_layout.addWidget(google_node)
+            # # Google Calendar 이벤트 추가
+            # if date in google_grouped_data:
+            #     for event in google_grouped_data[date]:
+            #         event_title = event.get("summary", "Untitled Event")
+            #         google_node = NodeWidget(event_title)  # Custom widget to display Google event
+            #         container_layout.addWidget(google_node)
 
-                    # 시간 정보 가져오기
-                    start_time = event.get('start', {}).get('dateTime')  # 'dateTime' 형식이 있을 때만
-                    end_time = event.get('end', {}).get('dateTime')
-                    if start_time:
-                        start_time = QDateTime.fromString(start_time, Qt.ISODate).toString("HH:mm")
-                        end_time = QDateTime.fromString(end_time, Qt.ISODate).toString("HH:mm")
-                        event_title += f" ({start_time} - {end_time})"
+            #         # 시간 정보 가져오기
+            #         start_time = event.get('start', {}).get('dateTime')  # 'dateTime' 형식이 있을 때만
+            #         end_time = event.get('end', {}).get('dateTime')
+            #         if start_time:
+            #             start_time = QDateTime.fromString(start_time, Qt.ISODate).toString("HH:mm")
+            #             end_time = QDateTime.fromString(end_time, Qt.ISODate).toString("HH:mm")
+            #             event_title += f" ({start_time} - {end_time})"
         
-                    google_node = NodeWidget(event_title)  # Custom widget to display Google event
-                    container_layout.addWidget(google_node)
+            #         google_node = NodeWidget(event_title)  # Custom widget to display Google event
+            #         container_layout.addWidget(google_node)
 
             self.setCellWidget(row, 0, node_container)  # 첫 번째 열에 컨테이너 추가
 
