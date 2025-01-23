@@ -126,7 +126,7 @@ if __name__ == "__main__":
     import sys
 
     app = QApplication(sys.argv)
-    font_id = QFontDatabase.addApplicationFont("assets/제주고딕(윈도우).ttf")
+    font_id = QFontDatabase.addApplicationFont("/Users/yungyeom/Downloads/madcamp_week4/madcamp_week04/assets/제주고딕(윈도우).otf")
 
     print("FontID: ", font_id)
     font_family = QFontDatabase.applicationFontFamilies(font_id)[0]

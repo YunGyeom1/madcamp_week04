@@ -143,7 +143,7 @@ class NodePopupMenu(QDialog):
 
     def choose_color(self):
         """색상 선택 다이얼로그 표시."""
-        color = QColorDialog.getColor()
+        color = QColorDialog.getColor(options=QColorDialog.DontUseNativeDialog)
         if color.isValid():
             self.node_color = color.name()  # 색상 값을 hex 문자열로 저장
             self.update_color_button(self.node_color)
