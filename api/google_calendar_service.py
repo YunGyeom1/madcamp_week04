@@ -12,7 +12,7 @@ load_dotenv()
 connection_string = os.getenv("MONGODB_URI")
 client = MongoClient(connection_string)
 db = client["W4_Calendar"]
-collection = db["Test"]
+collection = db["Calendar_Goals"]
 
 # 사용자의 인증 정보를 저장할 파일
 TOKEN_FILE = 'token.pickle'
@@ -71,10 +71,20 @@ def get_events_for_date(start_date, end_date):
 def create_event(node_id):
     """node_id를 받아서 DB에서 가져와서 구글 캘린더에 등록"""
     try:
+        print("create event!!")
         creds = authenticate_google_account()
         service = build('calendar', 'v3', credentials=creds)
 
         node = collection.find_one({"_id": node_id})
+
+        # 날짜와 시간을 조합하여 dateTime 생성
+        event_date = node["date"]  # YYYY-MM-DD 형식
+        start_time = node["start_time"]  # HH:MM 형식
+        end_time = node["end_time"]  # HH:MM 형식
+
+        # datetime 조합
+        start_datetime = f"{event_date}T{start_time}:00"  # YYYY-MM-DDTHH:MM:SS
+        end_datetime = f"{event_date}T{end_time}:00"  # YYYY-MM-DDTHH:MM:SS
 
         # 이벤트 세부 정보 설정
         event = {
@@ -82,11 +92,11 @@ def create_event(node_id):
             'location': node["location"],
             'description': node["description"],
             'start': {
-                'dateTime': '2025-01-30T10:00:00',
+                'dateTime': start_datetime,
                 'timeZone': 'Asia/Seoul',
             },
             'end': {
-                'dateTime': '2025-01-30T11:00:00',
+                'dateTime': end_datetime,
                 'timeZone': 'Asia/Seoul',
             },
             'reminders': {

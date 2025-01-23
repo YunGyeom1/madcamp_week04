@@ -67,7 +67,7 @@ def add_leaf(node_id, date=None):
     data.pop('children', None)
     data["parent"] = node_id
     data["date"] = date  # 전달받은 날짜 추가
-    data["title"] = f"Leaf of {data.get('title', 'Untitled')}"
+    data["title"] = f"{data.get('title', 'Untitled')}"
 
     # 새 노드 MongoDB에 삽입
     leaf = collection.insert_one(data)

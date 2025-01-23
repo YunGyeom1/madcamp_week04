@@ -49,7 +49,6 @@ class InteractiveNode(QGraphicsItemGroup):
 
         # 제목 텍스트
         self.title_text = QGraphicsSimpleTextItem(self.node["title"][:min(15, len(self.node["title"]))])
-        self.title_text.setFont(QFont("Arial", 12, QFont.Bold))
         self.title_text.setPos(40, 10)
         self.addToGroup(self.title_text)
 
@@ -149,14 +148,48 @@ class InteractiveNode(QGraphicsItemGroup):
                 new_child_id = MakeNode(f"Child of {self.node['title']}", self.node["_id"])
                 # 데이터 갱신
                 self.node["children"].append(new_child_id)
-                new_title, ok = QInputDialog.getText(self.scene().views()[0], "자식 노드 제목 변경", "새 제목을 입력하세요:", text=f"Child of {self.node['title']}")
 
-                if ok and new_title:
-                    # 새 제목을 자식 노드에 적용
-                    collection.update_one({"_id": new_child_id}, {"$set": {"title": new_title}})
-                    if self.update_callback:
-                        self.update_callback()
+                # QInputDialog 생성
+                input_dialog = QInputDialog(self.scene().views()[0])
+                input_dialog.setWindowTitle("자식 노드 제목 변경")
+                input_dialog.setLabelText("새 제목을 입력하세요:")
+                input_dialog.setTextValue(f"Child of {self.node['title']}")
 
+                # 스타일 설정
+                input_dialog.setStyleSheet("""
+                    QDialog {
+                        background-color: white;
+                    }
+                    QLabel {
+                        color: black;
+                    }
+                    QLineEdit {
+                        background-color: #f5f5f5;
+                        border: 1px solid #ccc;
+                        padding: 5px;
+                        border-radius: 3px;
+                    }
+                    QPushButton {
+                        background-color: #0078d4;
+                        color: white;
+                        border: none;
+                        padding: 5px 10px;
+                        border-radius: 3px;
+                    }
+                    QPushButton:hover {
+                        background-color: #005a9e;
+                    }
+                """)
+
+                # QInputDialog 실행
+                if input_dialog.exec_() == QInputDialog.Accepted:
+                    new_title = input_dialog.textValue()
+
+                    if new_title:
+                        # 새 제목을 자식 노드에 적용
+                        collection.update_one({"_id": new_child_id}, {"$set": {"title": new_title}})
+                        if self.update_callback:
+                            self.update_callback()
 
                 elif self.menu_button.contains(self.mapFromScene(event.scenePos())):
                     self.show_popup()
@@ -204,18 +237,51 @@ class InteractiveNode(QGraphicsItemGroup):
     def mouseDoubleClickEvent(self, event):
         """노드를 더블 클릭하면 제목을 변경할 수 있게 한다."""
         try:
-            # 제목 변경 대화상자 표시
-            new_title, ok = QInputDialog.getText(self.scene().views()[0], "노드 제목 변경", "새 제목을 입력하세요:", text=self.node["title"])
+            # QInputDialog 생성
+            input_dialog = QInputDialog(self.scene().views()[0])
+            input_dialog.setWindowTitle("노드 제목 변경")
+            input_dialog.setLabelText("새 제목을 입력하세요:")
+            input_dialog.setTextValue(self.node["title"])
 
-            if ok and new_title:
-                self.node["title"] = new_title  # MongoDB 데이터 업데이트
-                self.title_text.setText(new_title)  # 화면에 표시된 제목 업데이트
+            # 배경을 흰색으로 설정
+            input_dialog.setStyleSheet("""
+                QDialog {
+                    background-color: white;
+                }
+                QLabel {
+                    color: black;
+                }
+                QLineEdit {
+                    background-color: #f5f5f5;
+                    border: 1px solid #ccc;
+                    padding: 5px;
+                    border-radius: 3px;
+                }
+                QPushButton {
+                    background-color: #0078d4;
+                    color: white;
+                    border: none;
+                    padding: 5px 10px;
+                    border-radius: 3px;
+                }
+                QPushButton:hover {
+                    background-color: #005a9e;
+                }
+            """)
 
-                # MongoDB 업데이트
-                collection.update_one({"_id": self.node["_id"]}, {"$set": {"title": new_title}})
+            # QInputDialog 실행
+            if input_dialog.exec_() == QInputDialog.Accepted:
+                new_title = input_dialog.textValue()
 
-                if self.update_callback:
-                    self.update_callback()
+                if new_title:
+                    self.node["title"] = new_title  # MongoDB 데이터 업데이트
+                    self.title_text.setText(new_title)  # 화면에 표시된 제목 업데이트
+
+                    # MongoDB 업데이트
+                    collection.update_one({"_id": self.node["_id"]}, {"$set": {"title": new_title}})
+
+                    if self.update_callback:
+                        self.update_callback()
 
 
         except Exception as e:

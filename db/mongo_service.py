@@ -7,7 +7,7 @@ load_dotenv()
 connection_string = os.getenv("MONGODB_URI")
 client = MongoClient(connection_string)
 db = client["W4_Calendar"]
-collection = db["Test"]
+collection = db["Calendar_Goals"]
 
 goal_schema = {
     "title": "목표 제목",

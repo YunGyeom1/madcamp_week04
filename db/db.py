@@ -8,7 +8,7 @@ client = MongoClient(connection_string)
 db = client["W4_Calendar"]
 
 # 함수로 DB와 컬렉션 가져오기
-def get_collection(collection_name="Test"):
+def get_collection(collection_name="Calendar_Goals"):
     return db[collection_name]
 
  

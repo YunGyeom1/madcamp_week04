@@ -16,13 +16,14 @@ from gui.endNode import EndNode
 from models.goal import add_leaf
 from api.google_calendar_service import get_events_for_date
 from datetime import datetime, timedelta
+from api.google_calendar_service import create_event
 
 # MongoDB 설정
 load_dotenv()
 connection_string = os.getenv("MONGODB_URI")
 client = MongoClient(connection_string)
 db = client["W4_Calendar"]
-collection = db["Test"]
+collection = db["Calendar_Goals"]
 tag_collection = db["Tags"]
 
 def is_time_slot_available(date, start_time, end_time):
@@ -346,12 +347,14 @@ class Sidebar(QTableWidget):
                 print(f"No row found for date: {date}. Creating a new row.")
             else:
                 print(f"Found existing row for date: {date}, Row index: {row}")
+                create_event(new_leaf_id)
                 if row is None:
                     row = self.rowCount()
                     self.insertRow(row)
                     date_item = QTableWidgetItem(date)
                     date_item.setTextAlignment(Qt.AlignCenter)
                     self.setItem(row, 1, date_item)
+                    
 
             # 첫 번째 열 업데이트
             node_container = self.cellWidget(row, 0)
